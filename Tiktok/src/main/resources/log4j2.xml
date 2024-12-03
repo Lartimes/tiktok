@@ -9,7 +9,7 @@
     使用时通过:${name}
     -->
     <properties>
-        <property name="LOG_HOME">./logs</property>
+        <property name="LOG_HOME">F:\Dev\JavaDev\my-tiktok\Tiktok\logs</property>
     </properties>
 
     <!-- 日志处理 -->
@@ -65,7 +65,7 @@
         <!-- 使用 rootLogger 配置 日志级别 level="trace" -->
         <Root level="trace">
             <!-- 指定日志使用的处理器 -->
-            <!-- <AppenderRef ref="Console" />-->
+             <AppenderRef ref="Console" />
             <AppenderRef ref="file"/>
             <AppenderRef ref="rollingFile"/>
             <AppenderRef ref="accessFile"/>

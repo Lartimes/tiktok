@@ -1,0 +1,18 @@
+{
+  "properties": [
+    {
+      "name": "mybatis-plus.configuration.mapper-locations",
+      "type": "java.lang.String",
+      "description": "Description for mybatis-plus.configuration.mapper-locations."
+    },
+    {
+      "name": "jwt.config.expire",
+      "type": "java.lang.Long",
+      "description": "Description for jwt.config.expire."
+    },
+    {
+      "name": "jwt.config.secret",
+      "type": "java.lang.String",
+      "description": "Description for jwt.config.secret."
+    }
+  ] }

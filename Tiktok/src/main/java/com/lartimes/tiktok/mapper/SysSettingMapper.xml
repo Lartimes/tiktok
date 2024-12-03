@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lartimes.tiktok.mapper.SysSettingMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.SysSetting">
+        <id column="id" property="id" />
+        <result column="audit_policy" property="auditPolicy" />
+        <result column="hot_limit" property="hotLimit" />
+        <result column="audit_open" property="auditOpen" />
+        <result column="allow_ip" property="allowIp" />
+        <result column="auth" property="auth" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, audit_policy, hot_limit, audit_open, allow_ip, auth
+    </sql>
+
+</mapper>

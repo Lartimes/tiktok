@@ -8,6 +8,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/Tiktok/pom.xml" />
+        <option value="$PROJECT_DIR$/tiktok-generator/pom.xml" />
       </list>
     </option>
   </component>

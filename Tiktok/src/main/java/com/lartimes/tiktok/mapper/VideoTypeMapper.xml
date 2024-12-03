@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lartimes.tiktok.mapper.VideoTypeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.VideoType">
+        <id column="id" property="id" />
+        <result column="video_id" property="videoId" />
+        <result column="type_id" property="typeId" />
+        <result column="is_deleted" property="deleted" />
+        <result column="gmt_created" property="gmtCreated" />
+        <result column="gmt_updated" property="gmtUpdated" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, video_id, type_id, is_deleted, gmt_created, gmt_updated
+    </sql>
+
+</mapper>

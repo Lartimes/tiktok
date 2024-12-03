@@ -8,7 +8,7 @@ spring:
     time-zone: GMT+8
   datasource:
     driver-class-name: com.p6spy.engine.spy.P6SpyDriver
-    url: jdbc:p6spy:mysql://${DATASOURCE_HOST:127.0.0.1:3306}/${DATASOURCE_NAME:lucky-journey}?serverTimezone=GMT%2B8
+    url: jdbc:p6spy:mysql://${DATASOURCE_HOST:127.0.0.1:3306}/${DATASOURCE_NAME:tiktok}?serverTimezone=GMT%2B8
     username: ${DATASOURCE_USER:root}
     password: ${DATASOURCE_PASSWORD:307314}
 
@@ -16,10 +16,11 @@ spring:
     redis:
       port: 6379
       host: 127.0.0.1
-#ftdjymtxojmpcihc
-#mingdongiloveu2@qq.com
-#========================邮件
+  #ftdjymtxojmpcihc
+  #mingdongiloveu2@qq.com
+  #========================邮件
   mail:
+    code-validation: 5
     host: smtp.qq.com
     username: mingdongiloveu2@qq.com
     password: "ftdjymtxojmpcihc"
@@ -33,3 +34,47 @@ spring:
       "mail.smtp.auth": true
       "mail.smtp.starttls.enable": true
       "mail.smtp.starttls.required": true
+#mybatis
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    auto-mapping-behavior: full
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    mapper-locations: classpath:com/lartimes/tiktok/mapper/*.xml
+jwt:
+  config:
+    expire: 86400000
+    secret: ftdjymtxojmpcihc
+
+logging:
+  config: classpath:log4j2.xml
+  level:
+    root: info
+    jakarta.activation: info
+    org.apache.catalina: info
+    org.apache.commons.beanutils.converters: info
+    org.apache.coyote.http11.Http11Processor: info
+    org.apache.http: info
+    org.apache.tomcat: info
+    org.springframework: info
+
+qiniu:
+  kodo:
+    accessKey: ${QINIU_KODO_ACCESS:11yuYvkI--0p-gouHsUK4pW_KhO0V4UtKgIBabzt}
+    secretKey: ${QINIU_KODO_SECRET:NC50ziZ_cHfb3mYG5ToWSqUCe8CtZEFm0T3TBFgb}
+    bucket: ${QINIU_KODO_BUCKET:test-demo111}
+    fops: avthumb/mp4
+    mediaType: video/*
+    imageType: image/*
+    cname: http://snsznj2g7.hn-bkt.clouddn.com
+    videoUrl: http://ai.qiniuapi.com/v3/video/censor
+    imageUrl: http://ai.qiniuapi.com/v3/image/censor
+# public  String fops = "avthumb/mp4";
+#    private String accessKey;
+#    private String secretKey;
+#    private String bucket;
+#    private String mediaType;
+#    private String imageType;
+#public static final String CNAME = "http://snsznj2g7.hn-bkt.clouddn.com";
+#    public static final String VIDEO_URL = "http://ai.qiniuapi.com/v3/video/censor";
+#    public static final String IMAGE_URL = "http://ai.qiniuapi.com/v3/image/censor";
