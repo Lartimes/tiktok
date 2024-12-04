@@ -1,7 +1,5 @@
 package com.lartimes;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -13,7 +11,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 /**
  * @author wüsch
  * @version 1.0
- * @description:
+ * @description: 主程序
  * @since 2024/12/1 22:16
  */
 @EnableCaching
@@ -21,7 +19,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @MapperScan(basePackages = "com.lartimes.tiktok.mapper")
 public class TiktokApplication implements ApplicationRunner {
-    private static final Logger LOG = LogManager.getLogger(TiktokApplication.class);
+
+
 
     public static void main(String[] args) {
         SpringApplication.run(TiktokApplication.class, args);
@@ -29,6 +28,6 @@ public class TiktokApplication implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        LOG.info("启动成功 ,args : {}", args);
+
     }
 }

@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * @author wüsch
  * @version 1.0
- * @description:
+ * @description: web config配置类
  * @since 2024/12/2 21:47
  */
 @Configuration
@@ -34,6 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/tiktok/index/**",
                         "/tiktok/cdn/**");
     }
+
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
