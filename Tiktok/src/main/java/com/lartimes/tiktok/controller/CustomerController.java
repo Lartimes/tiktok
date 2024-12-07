@@ -1,6 +1,7 @@
 package com.lartimes.tiktok.controller;
 
 import com.lartimes.tiktok.holder.UserHolder;
+import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.util.R;
@@ -9,8 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Objects;
 
 /**
  * @author wüsch
@@ -26,14 +25,20 @@ public class CustomerController {
     @Autowired
     private RedisCacheUtil redisCacheUtil;
 
+    /**
+     * 更新用户信息
+     *
+     * @param userVO
+     * @return
+     */
     @PutMapping
-    public void updateCustomer(@RequestBody @Validated
-                               UserVO userVO) {
-        final Long sourceId = userVO.getId();
-        final Long userId = UserHolder.get();
-        if (!Objects.equals(sourceId, userId)) {
-            R.error().message("只可以修改自己的信息");
+    public R updateCustomer(@RequestBody @Validated
+                            UserVO userVO) {
+
+        if (userService.updateUserVo(userVO)) {
+            return R.ok();
         }
+        return R.error().message("请重试");
     }
 
     /**
@@ -56,5 +61,43 @@ public class CustomerController {
     @GetMapping("/getInfo/")
     public R getDefaultInfo(HttpServletRequest request) {
         return R.ok().data(userService.getInfo(UserHolder.get()));
+    }
+
+    /**
+     * 获取粉丝Page<User>
+     *
+     * @param pageVo
+     * @param userId
+     * @return
+     */
+    @GetMapping("/fans")
+    public R getFansByPage(PageVo pageVo, Long userId) {
+        return R.ok().data(userService.getFansByPage(pageVo, userId));
+    }
+    /**
+     * 获取粉丝Page<User>
+     *
+     * @param pageVo
+     * @param userId
+     * @return
+     */
+    @GetMapping("/follows")
+    public R getFollowerSByPage(PageVo pageVo, Long userId) {
+        return R.ok().data(userService.getFollowersByPage(pageVo, userId));
+    }
+
+
+    /**
+     * 进行关注
+     * @param followUserId
+     * @return
+     */
+    @PostMapping("/follow")
+    public R follows(@RequestParam Long followUserId) {
+        System.out.println(followUserId);
+        if (Boolean.TRUE.equals(userService.followUser(followUserId))) {
+            return R.ok();
+        }
+        return R.error();
     }
 }

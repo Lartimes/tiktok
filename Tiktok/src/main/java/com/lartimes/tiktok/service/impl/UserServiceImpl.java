@@ -1,12 +1,15 @@
 package com.lartimes.tiktok.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lartimes.tiktok.exception.BaseException;
+import com.lartimes.tiktok.holder.UserHolder;
 import com.lartimes.tiktok.mapper.UserMapper;
 import com.lartimes.tiktok.model.po.Favorites;
 import com.lartimes.tiktok.model.po.Follow;
 import com.lartimes.tiktok.model.po.User;
+import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.RegisterVO;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.FavoritesService;
@@ -24,7 +27,9 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -42,6 +47,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private FavoritesService favoritesService;
     @Autowired
     private FollowService followService;
+    @Autowired
+    private UserRoleServiceImpl userRoleServiceImpl;
+
 
     @Transactional
     @Override
@@ -49,8 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = new User();
         BeanUtils.copyProperties(registerVO, user);
         final String email = user.getEmail();
-        User existUser = this.getOne(new LambdaQueryWrapper<User>()
-                .eq(StringUtils.hasText(email), User::getEmail, email));
+        User existUser = this.getOne(new LambdaQueryWrapper<User>().eq(StringUtils.hasText(email), User::getEmail, email));
         if (existUser != null) {
             LOG.info("该邮箱已经被注册 : {}", email);
             throw new BaseException("该邮箱已经被注册");
@@ -77,8 +84,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public User login(User user) {
         final String password = user.getPassword();
-        LambdaQueryWrapper<User> email = new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, user.getEmail());
+        LambdaQueryWrapper<User> email = new LambdaQueryWrapper<User>().eq(User::getEmail, user.getEmail());
         final User destUser = this.getOne(email);
         if (destUser != null) {
             if (destUser.getPassword().equals(password)) {
@@ -102,15 +108,103 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         final UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
-        long countFollowers = followService.count(new LambdaQueryWrapper<Follow>()
-                .eq(Objects.nonNull(user.getId()), Follow::getFollowId, user.getId()));
+        long countFollowers = followService.count(new LambdaQueryWrapper<Follow>().eq(Objects.nonNull(user.getId()), Follow::getFollowId, user.getId()));
+        long countFans = followService.count(new LambdaQueryWrapper<Follow>().eq(Objects.nonNull(user.getId()), Follow::getUserId, user.getId()));
         userVO.setFollow(countFollowers);
-        long countFans = followService.count(new LambdaQueryWrapper<Follow>()
-                .eq(Objects.nonNull(user.getId()), Follow::getUserId, user.getId()));
         userVO.setFans(countFans);
         return userVO;
     }
 
+    @Transactional
+    @Override
+    public boolean updateUserVo(UserVO userVO) {
+        final Long sourceId = userVO.getId();
+        final Long userId = UserHolder.get();
+        if (!Objects.equals(sourceId, userId)) {
+            return Boolean.FALSE;
+        }
+        User user = new User();
+        BeanUtils.copyProperties(userVO, user);
+        user.setGmtCreated(LocalDateTime.now());
+        if (this.baseMapper.updateById(user) > 0) {
+            return Boolean.TRUE;
+        }
+        LOG.info("进行用户更新 , {}", user);
+        return Boolean.FALSE;
+    }
+
+    @Override
+    public Page<User> getFansByPage(PageVo pageVo, Long userId) {
+        Page<User> userPage = new Page<User>();
+        Collection<Long> fansIds = followService.getFansCollection(userId, pageVo);
+        LOG.info("获取粉丝collection : {}", fansIds);
+        if (fansIds.isEmpty()) {
+            return userPage;
+        }
+        HashSet<Long> followIds = new HashSet<>(followService.getFollowsCollection(userId, null));
+        LOG.info("获取关注collection : {}", followIds);
+        Map<Long, Boolean> map = new HashMap<>();
+        // 遍历粉丝，查看关注列表中是否有
+        for (Long fansId : fansIds) {
+            map.put(fansId, followIds.contains(fansId));
+        }
+
+        Map<Long, User> userMap = getBaseInfoUserToMap(map.keySet());
+        ArrayList<User> users = new ArrayList<>();
+        // 遍历粉丝列表,保证有序性
+        for (Long fansId : fansIds) {
+            User user = userMap.get(fansId);
+            user.setEach(map.get(user.getId()));
+            users.add(user);
+        }
+        userPage.setRecords(users);
+        userPage.setTotal(users.size());
+        LOG.info("查看是否互关，准备返回: {}", userPage);
+        return userPage;
+    }
+
+    @Override
+    public Page<User> getFollowersByPage(PageVo pageVo, Long userId) {
+        Page<User> userPage = new Page<>();
+        Collection<Long> followIds = followService.getFollowsCollection(userId, pageVo);
+        if (followIds.isEmpty()) {
+            return userPage;
+        }
+        HashSet<Long> fansSet = new HashSet<>(followService.getFansCollection(userId, null));
+        HashMap<Long, Boolean> map = new HashMap<>();
+        for (Long followId : followIds) {
+            map.put(followId, fansSet.contains(followId));
+        }
+        Map<Long, User> userMap = getBaseInfoUserToMap(map.keySet());
+        ArrayList<User> users = new ArrayList<>();
+        // 遍历粉丝列表,保证有序性
+        for (Long followId : followIds) {
+            User user = userMap.get(followId);
+            user.setEach(map.get(user.getId()));
+            users.add(user);
+        }
+        userPage.setRecords(users);
+        userPage.setTotal(users.size());
+        LOG.info("查看是否互关，准备返回: {}", userPage);
+        return userPage;
+    }
+
+    private Map<Long, User> getBaseInfoUserToMap(Set<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return this.getBaseMapper().selectList(new LambdaQueryWrapper<User>().in(User::getId, userIds)
+                        .select(User::getSex, User::getDescription, User::getNickName, User::getAvatar, User::getId))
+                .stream().collect(Collectors.toMap(User::getId, Function.identity()));
+    }
+
+    @Transactional
+    @Override
+    public Boolean followUser(Long followUserId) {
+        Long userId = UserHolder.get();
+        LOG.info("进行取关/关注操作");
+        return followService.follow(userId, followUserId);
+    }
 
 
 }

@@ -21,10 +21,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 public class TiktokApplication implements ApplicationRunner {
 
 
-
     public static void main(String[] args) {
         SpringApplication.run(TiktokApplication.class, args);
     }
+
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
