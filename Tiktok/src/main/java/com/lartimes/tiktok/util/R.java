@@ -16,8 +16,6 @@ public class R<T>{
     private static final long serialVersionUID = 22L;
 
     private T type;
-
-    // 响应码，返回状态，返回消息，返回数据
     private int code;
 
     private Boolean state;

@@ -64,7 +64,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 //TODO
 //            final List<Long> videoIds = (List<Long>) videoService.listVideoIdByUserId(followsId);
 //            feedService.deleteInBoxFeed(userId, videoIds);
-            return Boolean.TRUE;
+            return Boolean.FALSE;
         }
     }
 

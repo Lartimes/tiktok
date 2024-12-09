@@ -28,7 +28,6 @@ import java.util.HashMap;
 @Getter
 public class JWTUtils {
     private static final Logger LOG = LogManager.getLogger(JWTUtils.class);
-    //常量
     public long expire;
     public String secret;
 
@@ -43,7 +42,6 @@ public class JWTUtils {
             String jwtToken = request.getHeader("token");
             if (ObjectUtils.isEmpty(jwtToken)) return false;
             JWT.require(Algorithm.HMAC256(secret)).build().verify(jwtToken);
-            LOG.info("验证正确");
             return Boolean.TRUE;
         } catch (Exception e) {
             return false;

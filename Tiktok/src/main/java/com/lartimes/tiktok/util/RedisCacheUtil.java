@@ -1,6 +1,5 @@
 package com.lartimes.tiktok.util;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
@@ -20,8 +19,11 @@ import java.util.concurrent.TimeUnit;
 public class RedisCacheUtil {
 
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    public RedisCacheUtil(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
 
     /**
@@ -147,11 +149,10 @@ public class RedisCacheUtil {
     }
 
     public String getKey(String email) {
-        String result = String.valueOf(redisTemplate.opsForValue().get(email));
-        return result;
+        return String.valueOf(redisTemplate.opsForValue().get(email));
     }
 
-    public void deleteKey(String email) {
-        redisTemplate.delete(email);
+    public void deleteKey(String key) {
+        redisTemplate.delete(key);
     }
 }

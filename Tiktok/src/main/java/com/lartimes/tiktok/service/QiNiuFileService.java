@@ -38,4 +38,11 @@ public interface QiNiuFileService {
     FileInfo getFileInfo(String url);
 
 
+    /**
+     * 获取图像上传Token
+     * @return
+     */
+    String getAvatarToken();
+
+
 }

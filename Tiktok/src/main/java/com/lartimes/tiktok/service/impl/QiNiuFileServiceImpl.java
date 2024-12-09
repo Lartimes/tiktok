@@ -80,8 +80,7 @@ public class QiNiuFileServiceImpl implements QiNiuFileService {
         Auth auth = qiNiuConfig.getAuth();
         BucketManager bucketManager = new BucketManager(auth, cfg);
         try {
-            FileInfo fileInfo = bucketManager.stat(qiNiuConfig.getBucket(),
-                    url);
+            FileInfo fileInfo = bucketManager.stat(qiNiuConfig.getBucket(), url);
             LOG.info("获取到fileInfo : {}", fileInfo);
             return fileInfo;
         } catch (QiniuException ex) {
@@ -89,6 +88,11 @@ public class QiNiuFileServiceImpl implements QiNiuFileService {
             System.err.println(ex.response);
         }
         return null;
+    }
+
+    @Override
+    public String getAvatarToken() {
+        return qiNiuConfig.imageGetToken();
     }
 
 
