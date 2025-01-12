@@ -3,6 +3,8 @@ server:
   servlet:
     context-path: /tiktok
 spring:
+  main:
+    allow-circular-references: true
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
@@ -59,12 +61,12 @@ logging:
 
 qiniu:
   kodo:
-    accessKey: 11yuYvkI--0p-gouHsUK4pW_KhO0V4UtKgIBabzt
-    secretKey: NC50ziZ_cHfb3mYG5ToWSqUCe8CtZEFm0T3TBFgb
-    bucket: :test-demo111
+    accessKey: ${QINIU_KODO_ACCESS:11yuYvkI--0p-gouHsUK4pW_KhO0V4UtKgIBabzt}
+    secretKey: ${QINIU_KODO_SECRET:NC50ziZ_cHfb3mYG5ToWSqUCe8CtZEFm0T3TBFgb}
+    bucket: ${QINIU_KODO_BUCKET:test-demo222}
     fops: avthumb/mp4
     mediaType: video/*
     imageType: image/*
-    cname: http://snsznj2g7.hn-bkt.clouddn.com
+    cname: http://spz6m6sd3.hb-bkt.clouddn.com
     videoUrl: http://ai.qiniuapi.com/v3/video/censor
     imageUrl: http://ai.qiniuapi.com/v3/image/censor

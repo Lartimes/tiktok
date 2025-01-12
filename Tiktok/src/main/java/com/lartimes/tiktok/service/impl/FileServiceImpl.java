@@ -2,6 +2,8 @@ package com.lartimes.tiktok.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lartimes.tiktok.config.LocalCache;
+import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.mapper.FileMapper;
 import com.lartimes.tiktok.model.po.File;
 import com.lartimes.tiktok.service.FileService;
@@ -17,6 +19,7 @@ import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * <p>
@@ -58,5 +61,25 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         this.save(file);
         LOG.info("保存文件信息:{}", file);
         return file.getId();
+    }
+
+    @Override
+    public File getFileTrustUrl(Long fileId) {
+        File file = getById(fileId);
+        if (Objects.isNull(file)) {
+            throw new BaseException("未找到该文件");
+        }
+        final String s = UUID.randomUUID().toString();
+        //双重LocalCache
+        LocalCache.put(s,true);
+        String url = qiNiuFileService.getCname()+ "/" + file.getFileKey();
+
+        if (url.contains("?")){
+            url = url+"&uuid="+s;
+        }else {
+            url = url+"?uuid="+s;
+        }
+        file.setFileKey(url);
+        return file;
     }
 }

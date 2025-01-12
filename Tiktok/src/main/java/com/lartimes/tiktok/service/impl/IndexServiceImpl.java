@@ -1,7 +1,12 @@
 package com.lartimes.tiktok.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lartimes.tiktok.constant.RedisConstant;
+import com.lartimes.tiktok.model.po.Type;
+import com.lartimes.tiktok.model.po.Video;
 import com.lartimes.tiktok.service.IndexService;
+import com.lartimes.tiktok.service.TypeService;
+import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * @author wüsch
@@ -25,6 +31,10 @@ public class IndexServiceImpl implements IndexService {
     private static final Logger LOG = LogManager.getLogger(IndexServiceImpl.class);
     @Autowired
     private RedisCacheUtil redisCacheUtil;
+    @Autowired
+    private VideoService videoService;
+    @Autowired
+    private TypeService typeService;
 
     @Override
     public Collection<String> getSearchHistory(Long userId) {
@@ -47,6 +57,22 @@ public class IndexServiceImpl implements IndexService {
         } catch (Exception e) {
             return Boolean.FALSE;
         }
-
     }
+
+    @Override
+    public List<Video> selectVideoByTypeID(Integer id) {
+        List<Video> videos = videoService.getBaseMapper().selectList(new LambdaQueryWrapper<Video>()
+                .eq(Video::getTypeId, id));
+        if (videos == null || videos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return videos;
+    }
+
+    @Override
+    public List<Type> getAllTypes() {
+        return typeService.getBaseMapper().selectList(null);
+    }
+
+
 }

@@ -20,8 +20,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @MapperScan(basePackages = "com.lartimes.tiktok.mapper")
 public class TiktokApplication implements ApplicationRunner {
 
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         SpringApplication.run(TiktokApplication.class, args);
     }
 

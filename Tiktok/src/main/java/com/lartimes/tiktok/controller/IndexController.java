@@ -5,10 +5,7 @@ import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.R;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author wüsch
@@ -25,15 +22,47 @@ public class IndexController {
     private JWTUtils jWTUtils;
 
 
+    /**
+     * 获取搜索记录
+     *
+     * @param request
+     * @return
+     */
     @GetMapping("/search/history")
     public R searchHistory(HttpServletRequest request) {
         return R.ok().data(indexService.getSearchHistory(jWTUtils.getUserId(request)));
     }
 
+    /**
+     * 删除搜索记录
+     *
+     * @param request
+     * @return
+     */
     @DeleteMapping("/search/history")
     public R delSearchHistory(HttpServletRequest request) {
         return R.ok().message(indexService.delSearchHistory(jWTUtils.getUserId(request)) ?
                 "删除成功" : "失败，请重试");
+    }
+
+
+    /**
+     *  根据视频获取type
+     * @param id
+     * @return
+     */
+    @RequestMapping("/video/type/{typeId}")
+    public R getVideoesByFId(@PathVariable("typeId") Integer id) {
+        return R.ok().data(indexService.selectVideoByTypeID(id));
+    }
+
+    /**
+     * 获取所有分类
+     * @return
+     */
+    @RequestMapping("/types")
+    public R getVideoTypes() {
+        return R.ok().data(indexService.getAllTypes());
     }
 
 

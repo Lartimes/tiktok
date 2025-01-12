@@ -39,7 +39,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
 
-        String[] url = {"http://127.0.0.1:314", "http://127.0.0.1:5378", "http://localhost:5378"};
+        String[] url = {"http://127.0.0.1:314", "http://127.0.0.1:5378", "http://localhost:5378",
+                "http://127.0.0.1:5379", "http://localhost:5379"};
 
         registry.addMapping("/**")
                 .allowedOrigins(url)

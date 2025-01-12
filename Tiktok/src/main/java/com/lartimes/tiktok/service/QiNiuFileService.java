@@ -11,27 +11,37 @@ import java.io.File;
  * @since 2024/12/3 10:35
  */
 public interface QiNiuFileService {
+    /**
+     * 获取域名 拼接url
+     * @return
+     */
+    String getCname();
 
 
     /**
      * 获取客户端上传签名
+     *
      * @return
      */
-    String getToken();
+    String getToken(String type);
+
     /**
      * 上传文件
+     *
      * @param file
      */
     String uploadFile(File file);
 
     /**
      * 删除文件
+     *
      * @param url
      */
     void deleteFile(String url);
 
     /**
      * 获取文件信息
+     *
      * @param url
      * @return
      */
@@ -40,6 +50,7 @@ public interface QiNiuFileService {
 
     /**
      * 获取图像上传Token
+     *
      * @return
      */
     String getAvatarToken();

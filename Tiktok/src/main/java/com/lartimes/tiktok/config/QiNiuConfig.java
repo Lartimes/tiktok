@@ -6,14 +6,6 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.StringJoiner;
-
-/**
- * @author wüsch
- * @version 1.0
- * @description:
- * @since 2024/12/3 10:12
- */
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "qiniu.kodo")
@@ -35,19 +27,20 @@ public class QiNiuConfig {
     }
 
     public String getToken(String type) {
+        System.out.println(mediaType);
+        System.out.println(imageType);
         return getAuth().uploadToken(bucket, null, 300,
-                new StringMap().put("mimeLimit", new StringJoiner(";").add(mediaType).add(imageType).toString()));
+                new StringMap().put("mimeLimit", mediaType + ";" + imageType) , true);
     }
 
     public String videoGetToken() {
         return getAuth().uploadToken(bucket, null, 300,
-                new StringMap().put("mimeLimit", new StringJoiner(";").add(mediaType)
-                        .toString()).putNotEmpty("persistentOps", fops));
+                new StringMap().put("mimeLimit", mediaType)
+                        .putNotEmpty("persistentOps", fops));
     }
 
     public String imageGetToken() {
         return getAuth().uploadToken(bucket, null, 300,
-                new StringMap().put("mimeLimit", new StringJoiner(";").add(imageType)
-                        .toString()));
+                new StringMap().put("mimeLimit", imageType));
     }
 }

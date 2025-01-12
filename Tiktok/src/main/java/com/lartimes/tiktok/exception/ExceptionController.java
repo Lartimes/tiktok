@@ -19,6 +19,7 @@ public class ExceptionController {
 
     @ExceptionHandler(Exception.class)
     public R ex(Exception e) {
+        e.printStackTrace();
         LOG.error(e.getMessage(), e);
         String msg = ObjectUtils.isEmpty(e.getMessage()) ? e.toString() : e.getMessage();
         return R.error().message(msg);

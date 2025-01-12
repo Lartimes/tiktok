@@ -12,5 +12,19 @@ import com.lartimes.tiktok.model.po.File;
  * @since 2024-12-02
  */
 public interface FileService extends IService<File> {
+    /**
+     * 保存本地文件
+     * @param fileKey
+     * @param userId
+     * @return
+     */
     Long save(String fileKey,Long userId);
+
+    /**
+     * 根据FileId 返回File
+     * @param fileId
+     * @return
+     */
+    File getFileTrustUrl(Long fileId);
+
 }

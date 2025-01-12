@@ -90,18 +90,18 @@ const isSelf = computed(() => {
 })
 const avatarImg = computed(() => {
     if (!userInfo.value) {
-        getUserInfo()
-        return "/logo.png"
+      getUserInfo()
+      return "/logo.png"
     }
     if (avatarFileRef.value && avatarFileRef.value.files && avatarFileRef.value.files[0]) {
-        var URL = window.URL || window.webkitURL;
-        return URL.createObjectURL(avatarFileRef.value.files[0])
+      var URL = window.URL || window.webkitURL;
+      return URL.createObjectURL(avatarFileRef.value.files[0])
     }
     if (userInfo.value == null) {
-        return "/logo.png"
+      return "/logo.png"
     }
     if (userInfo.value.avatar == null) return "/logo.png"
-    
+
     return apiFileGet(userInfo.value.avatar)
 })
 const uploadAvatar = () => {

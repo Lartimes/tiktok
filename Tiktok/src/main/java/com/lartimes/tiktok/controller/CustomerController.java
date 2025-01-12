@@ -44,9 +44,8 @@ public class CustomerController {
     @PutMapping
     public R updateCustomer(@RequestBody @Validated
                             UserVO userVO) {
-
         if (userService.updateUserVo(userVO)) {
-            return R.ok();
+            return R.ok().message("更新成功");
         }
         return R.error().message("请重试");
     }
@@ -179,6 +178,7 @@ public class CustomerController {
         }
         return R.error().message("fail , 请重试");
     }
+
 
     /**
      * 进行多个分类的订阅

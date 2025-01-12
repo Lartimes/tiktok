@@ -124,6 +124,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return Boolean.FALSE;
         }
         User user = new User();
+        User selected = getOne(new LambdaQueryWrapper<User>()
+                .eq(User::getId, userVO.getId()));
+        BeanUtils.copyProperties(selected, user);
+        LOG.info("用户old 信息: {}" , selected);
         BeanUtils.copyProperties(userVO, user);
         user.setGmtCreated(LocalDateTime.now());
         if (this.baseMapper.updateById(user) > 0) {

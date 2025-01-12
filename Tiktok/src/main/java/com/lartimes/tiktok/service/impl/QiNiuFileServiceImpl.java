@@ -32,10 +32,15 @@ public class QiNiuFileServiceImpl implements QiNiuFileService {
 
     @Autowired
     private QiNiuConfig qiNiuConfig;
+    @Override
+    public String getCname() {
+        return qiNiuConfig.getCname();
+    }
+
 
     @Override
-    public String getToken() {
-        return qiNiuConfig.videoGetToken();
+    public String getToken(String type) {
+        return qiNiuConfig.getToken(type);
     }
 
     @Override
