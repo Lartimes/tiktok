@@ -16,7 +16,6 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author wüsch
@@ -33,17 +32,14 @@ public class TokenInterceptor implements HandlerInterceptor {
     @Autowired
     private UserService userService;
 
-    {
-        ConcurrentHashMap<Integer, Integer> map = new ConcurrentHashMap<>();
-        map.put(1, 1);
-    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        LOG.info("进入preHandle method" );
+        LOG.info("进入preHandle method : {}", request.getRequestURI());
         if ("OPTIONS".equals(request.getMethod())) {
             return true;
         }
+
         if (!jwtUtils.checkToken(request)) {
             response(R.error().message("请登录后再操作"), response);
             return false;

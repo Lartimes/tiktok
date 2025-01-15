@@ -71,15 +71,28 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         }
         final String s = UUID.randomUUID().toString();
         //双重LocalCache
-        LocalCache.put(s,true);
-        String url = qiNiuFileService.getCname()+ "/" + file.getFileKey();
+        LocalCache.put(s, true);
+        String url = qiNiuFileService.getCname() + "/" + file.getFileKey();
 
-        if (url.contains("?")){
-            url = url+"&uuid="+s;
-        }else {
-            url = url+"?uuid="+s;
+        if (url.contains("?")) {
+            url = url + "&uuid=" + s;
+        } else {
+            url = url + "?uuid=" + s;
         }
         file.setFileKey(url);
         return file;
+    }
+
+    @Override
+    public String generatePhoto(String url, Long userId) {
+        String fileKey = url + "?vframe/jpg/offset/1";
+        File fileInfo = new File();
+        fileInfo.setFileKey(fileKey);
+        fileInfo.setFormat("image/*");
+        fileInfo.setType("图片");
+        fileInfo.setUserId(userId);
+        save(fileInfo);
+        return fileKey;
+
     }
 }

@@ -25,10 +25,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         LOG.info("加载拦截器");
-        LOG.info("{}", this.tokenInterceptor);
         registry.addInterceptor(this.tokenInterceptor)
                 .addPathPatterns("/admin/**", "/authorize/**")
                 .addPathPatterns("/customer/**")
+                .addPathPatterns("/video/**")
                 .addPathPatterns("/tiktok/**")
                 .excludePathPatterns("/tiktok/login/**",
                         "/tiktok/index/**",

@@ -30,7 +30,9 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, yv, title, description, url, user_id, type_id, open, cover, audit_status, msg, audit_queue_status, start_count, share_count, history_count, favorites_count, label_names, video_type, duration, is_deleted, gmt_created, gmt_updated
+        id, yv, title, description, url, user_id, type_id, `open`,
+          cover, audit_status, msg, audit_queue_status, start_count, share_count, history_count, favorites_count, label_names, video_type, duration, is_deleted, gmt_created,
+          gmt_updated
     </sql>
 
 </mapper>

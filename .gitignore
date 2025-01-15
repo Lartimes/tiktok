@@ -1,0 +1,62 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+out/
+target/
+build/
+.gradle/
+.idea/
+
+# Vue.js
+/dist/
+/node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Log files
+*.log
+logs/
+
+# OS generated files #
+######################
+.DS_Store*
+Thumbs.db
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# Maven
+target/
+
+# Gradle
+.gradle/
+
+# Other
+*.bak
+*.swp
+*.swo
+*.swn
+*.log
+*.tmp
+*.swp

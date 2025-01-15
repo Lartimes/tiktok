@@ -15,5 +15,17 @@ import java.util.List;
  * @since 2024-12-02
  */
 public interface VideoService extends IService<Video> {
+    /**
+     * 根据ID获取 视频
+     * @param videoIds
+     * @return
+     */
     Collection<Video> getVideosByIds(List<Long> videoIds);
+
+    /**
+     * 发布/修改视频 ，
+     * @param video
+     */
+    void postVideo(Video video);
+
 }

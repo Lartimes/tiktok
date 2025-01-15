@@ -1,22 +1,22 @@
 package com.lartimes.tiktok.controller;
 
 import com.lartimes.tiktok.holder.UserHolder;
+import com.lartimes.tiktok.model.po.Video;
 import com.lartimes.tiktok.service.FavoritesVideoService;
+import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.R;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author wüsch
  * @version 1.0
- * @description:
- *  收藏夹---> commit
- *    / -- ?
+ * @description: 收藏夹---> commit
+ * / -- ?
  * @since 2024/12/15 17:40
  */
 @RestController
@@ -25,13 +25,24 @@ public class VideoController {
     private static final Logger LOG = LogManager.getLogger(VideoController.class);
 
     @Autowired
+    private VideoService videoService;
+
+
+    @Autowired
     private FavoritesVideoService favoritesVideoService;
 
+    @PostMapping
+//    @Limit(limit = 5,time = 3600L,msg = "发布视频一小时内不可超过5次")
+    public R postVideo(@RequestBody @Validated Video video , HttpServletRequest request)  {
 
+        videoService.postVideo(video);
+        return R.ok().message("请等待审核");
+    }
 
 
     /**
      * 获取收藏夹下的所有视频
+     *
      * @param favoritesId
      * @return
      */
@@ -42,6 +53,7 @@ public class VideoController {
 
     /**
      * 收藏视频
+     *
      * @param fId 收藏夹ID
      * @param vId
      * @return
@@ -49,7 +61,7 @@ public class VideoController {
     @PostMapping("/favorites/{fId}/{vId}")
     public R addFavoriteVideo(@PathVariable String fId, @PathVariable String vId) {
 
-        return R.ok().message(favoritesVideoService.addFavorites(fId , vId ) ?  "收藏成功" : "收藏失败");
+        return R.ok().message(favoritesVideoService.addFavorites(fId, vId) ? "收藏成功" : "收藏失败");
     }
 
 }

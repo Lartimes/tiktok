@@ -27,4 +27,11 @@ public interface FileService extends IService<File> {
      */
     File getFileTrustUrl(Long fileId);
 
+    /**
+     * 生成图片第一帧
+     * @param url
+     * @param userId
+     * @return
+     */
+    String  generatePhoto(String url, Long userId);
 }
