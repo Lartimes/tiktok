@@ -25,14 +25,19 @@ public class QiNiuConfig implements InitializingBean {
 
 
     public Auth getAuth() {
+        String accessKey = this.getAccessKey();
+        String secretKey = this.getSecretKey();
         return Auth.create(accessKey, secretKey);
     }
 
     public String getToken(String type) {
-        System.out.println(mediaType);
-        System.out.println(imageType);
         return getAuth().uploadToken(bucket, null, 300,
                 new StringMap().put("mimeLimit", mediaType + ";" + imageType), true);
+    }
+    public String getToken(String url, String method, String body, String contentType) {
+        final Auth auth = getAuth();
+        return "Qiniu " + auth.signQiniuAuthorization(url, method, body == null ?
+                        null : body.getBytes(), contentType);
     }
 
     public String videoGetToken() {

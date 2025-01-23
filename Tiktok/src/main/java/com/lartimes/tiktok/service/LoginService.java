@@ -1,6 +1,6 @@
 package com.lartimes.tiktok.service;
 
-import com.lartimes.tiktok.model.po.Captcha;
+import com.lartimes.tiktok.model.user.Captcha;
 import com.lartimes.tiktok.model.vo.FindPWVO;
 import com.lartimes.tiktok.model.vo.RegisterVO;
 import jakarta.servlet.http.HttpServletResponse;

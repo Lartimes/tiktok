@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.FileMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.File">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.video.File">
         <id column="id" property="id" />
         <result column="file_key" property="fileKey" />
         <result column="format" property="format" />

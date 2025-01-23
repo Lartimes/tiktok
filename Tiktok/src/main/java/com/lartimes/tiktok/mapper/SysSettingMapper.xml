@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.SysSettingMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.SysSetting">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.SysSetting">
         <id column="id" property="id" />
         <result column="audit_policy" property="auditPolicy" />
         <result column="hot_limit" property="hotLimit" />

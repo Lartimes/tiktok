@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lartimes.tiktok.model.po.Favorites;
+import com.lartimes.tiktok.model.user.Favorites;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

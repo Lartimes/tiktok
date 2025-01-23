@@ -1,4 +1,4 @@
-package com.lartimes.tiktok.model.po;
+package com.lartimes.tiktok.model.user;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;

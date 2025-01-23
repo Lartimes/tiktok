@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.FollowMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.Follow">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.Follow">
         <id column="id" property="id" />
         <result column="user_id" property="userId" />
         <result column="follow_id" property="followId" />

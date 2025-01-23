@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lartimes.tiktok.model.po.File;
+import com.lartimes.tiktok.model.video.File;
 
 /**
  * <p>
@@ -29,9 +29,9 @@ public interface FileService extends IService<File> {
 
     /**
      * 生成图片第一帧
-     * @param url
+     * @param fileId
      * @param userId
      * @return
      */
-    String  generatePhoto(String url, Long userId);
+    Long generatePhoto(Long fileId,Long userId);
 }

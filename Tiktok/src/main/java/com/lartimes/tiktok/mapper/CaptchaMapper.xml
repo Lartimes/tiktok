@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.CaptchaMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.Captcha">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.Captcha">
         <id column="uuid" property="uuid" />
         <result column="code" property="code" />
         <result column="expire_time" property="expireTime" />

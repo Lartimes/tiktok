@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.PermissionMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.Permission">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.Permission">
         <id column="id" property="id" />
         <result column="p_id" property="pId" />
         <result column="path" property="path" />

@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lartimes.tiktok.config.LocalCache;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.mapper.FileMapper;
-import com.lartimes.tiktok.model.po.File;
+import com.lartimes.tiktok.model.video.File;
 import com.lartimes.tiktok.service.FileService;
 import com.lartimes.tiktok.service.QiNiuFileService;
 import com.qiniu.storage.model.FileInfo;
@@ -83,16 +83,17 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         return file;
     }
 
+    @Transactional
     @Override
-    public String generatePhoto(String url, Long userId) {
-        String fileKey = url + "?vframe/jpg/offset/1";
-        File fileInfo = new File();
+    public Long generatePhoto(Long fileId, Long userId) {
+        final File file = getById(fileId);
+        final String fileKey = file.getFileKey() + "?vframe/jpg/offset/1";
+        final File fileInfo = new File();
         fileInfo.setFileKey(fileKey);
         fileInfo.setFormat("image/*");
         fileInfo.setType("图片");
         fileInfo.setUserId(userId);
         save(fileInfo);
-        return fileKey;
-
+        return fileInfo.getId();
     }
 }

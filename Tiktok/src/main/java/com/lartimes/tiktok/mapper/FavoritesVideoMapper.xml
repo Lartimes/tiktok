@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.FavoritesVideoMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.FavoritesVideo">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.FavoritesVideo">
         <id column="id" property="id" />
         <result column="favorites_id" property="favoritesId" />
         <result column="video_id" property="videoId" />

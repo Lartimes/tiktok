@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.service;
 
-import com.lartimes.tiktok.model.po.Type;
-import com.lartimes.tiktok.model.po.Video;
+import com.lartimes.tiktok.model.video.Type;
+import com.lartimes.tiktok.model.video.Video;
 
 import java.util.Collection;
 import java.util.List;

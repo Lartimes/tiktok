@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.code.kaptcha.Producer;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.mapper.CaptchaMapper;
-import com.lartimes.tiktok.model.po.Captcha;
+import com.lartimes.tiktok.model.user.Captcha;
 import com.lartimes.tiktok.service.CaptchaService;
 import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.util.EmailSenderUtil;

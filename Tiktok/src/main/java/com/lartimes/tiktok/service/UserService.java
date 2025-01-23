@@ -2,7 +2,7 @@ package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lartimes.tiktok.model.po.User;
+import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.RegisterVO;
 import com.lartimes.tiktok.model.vo.UserVO;

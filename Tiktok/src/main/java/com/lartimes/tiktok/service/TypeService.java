@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lartimes.tiktok.model.po.Type;
+import com.lartimes.tiktok.model.video.Type;
 
 import java.util.List;
 

@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.UserMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.User">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.User">
         <id column="id" property="id" />
         <result column="email" property="email" />
         <result column="nick_name" property="nickName" />

@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.mapper.FollowMapper;
-import com.lartimes.tiktok.model.po.Follow;
+import com.lartimes.tiktok.model.user.Follow;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.service.FollowService;
 import com.lartimes.tiktok.util.RedisCacheUtil;
@@ -97,7 +97,8 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
         if (ObjectUtils.isEmpty(records)) {
             return Collections.emptyList();
         }
-        return records.stream().map(record -> Long.valueOf(record.getUserId().toString())).collect(Collectors.toList());
+        return records.stream().map(record ->
+                Long.valueOf(record.getUserId().toString())).collect(Collectors.toList());
     }
 
     @Override

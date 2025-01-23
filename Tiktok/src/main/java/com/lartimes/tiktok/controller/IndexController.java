@@ -1,6 +1,8 @@
 package com.lartimes.tiktok.controller;
 
+import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.service.IndexService;
+import com.lartimes.tiktok.service.impl.VideoServiceImpl;
 import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.R;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +22,17 @@ public class IndexController {
     private IndexService indexService;
     @Autowired
     private JWTUtils jWTUtils;
+    @Autowired
+    private VideoServiceImpl videoServiceImpl;
 
+// /index/video/user?userId=19&page=1&limit=10
+
+    @GetMapping("/video/user")
+    private R getUserVideo(@RequestParam(required = false) Long userId,
+                           PageVo pageVo, HttpServletRequest request) {
+        userId = userId == null ? jWTUtils.getUserId(request) : userId;
+        return R.ok().data(videoServiceImpl.getVideoByUserId(pageVo, userId));
+    }
 
     /**
      * 获取搜索记录
@@ -47,7 +59,8 @@ public class IndexController {
 
 
     /**
-     *  根据视频获取type
+     * 根据视频获取type
+     *
      * @param id
      * @return
      */
@@ -58,6 +71,7 @@ public class IndexController {
 
     /**
      * 获取所有分类
+     *
      * @return
      */
     @RequestMapping("/types")

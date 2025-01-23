@@ -2,8 +2,8 @@ package com.lartimes.tiktok.controller;
 
 import com.lartimes.tiktok.config.LocalCache;
 import com.lartimes.tiktok.holder.UserHolder;
-import com.lartimes.tiktok.model.po.File;
-import com.lartimes.tiktok.model.po.SysSetting;
+import com.lartimes.tiktok.model.video.File;
+import com.lartimes.tiktok.model.SysSetting;
 import com.lartimes.tiktok.service.FileService;
 import com.lartimes.tiktok.service.QiNiuFileService;
 import com.lartimes.tiktok.service.SysSettingService;

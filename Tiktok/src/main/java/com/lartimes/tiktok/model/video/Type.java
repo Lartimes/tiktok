@@ -1,4 +1,4 @@
-package com.lartimes.tiktok.model.po;
+package com.lartimes.tiktok.model.video;
 
 
 import com.baomidou.mybatisplus.annotation.IdType;

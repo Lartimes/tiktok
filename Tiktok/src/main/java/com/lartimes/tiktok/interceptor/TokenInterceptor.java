@@ -2,7 +2,7 @@ package com.lartimes.tiktok.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lartimes.tiktok.holder.UserHolder;
-import com.lartimes.tiktok.model.po.User;
+import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.R;

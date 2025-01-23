@@ -2,8 +2,8 @@ package com.lartimes.tiktok.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lartimes.tiktok.exception.BaseException;
-import com.lartimes.tiktok.model.po.Captcha;
-import com.lartimes.tiktok.model.po.User;
+import com.lartimes.tiktok.model.user.Captcha;
+import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.vo.FindPWVO;
 import com.lartimes.tiktok.model.vo.RegisterVO;
 import com.lartimes.tiktok.service.CaptchaService;

@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.controller;
 
 import com.lartimes.tiktok.holder.UserHolder;
-import com.lartimes.tiktok.model.po.Video;
+import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.service.FavoritesVideoService;
 import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.R;
@@ -31,9 +31,19 @@ public class VideoController {
     @Autowired
     private FavoritesVideoService favoritesVideoService;
 
+
+    @GetMapping("/audit/queue/state")
+    public R getQueueState() {
+        boolean queueState = videoService.getQueueState();
+        R state = R.ok().state(queueState);
+        state.setMessage(queueState ? "快速" : "慢速");
+        return state;
+
+    }
+
     @PostMapping
 //    @Limit(limit = 5,time = 3600L,msg = "发布视频一小时内不可超过5次")
-    public R postVideo(@RequestBody @Validated Video video , HttpServletRequest request)  {
+    public R postVideo(@RequestBody @Validated Video video, HttpServletRequest request) {
 
         videoService.postVideo(video);
         return R.ok().message("请等待审核");

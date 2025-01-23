@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.TypeMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.Type">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.video.Type">
         <id column="id" property="id" />
         <result column="name" property="name" />
         <result column="description" property="description" />

@@ -1,6 +1,6 @@
 package com.lartimes.tiktok.model.task;
 
-import com.lartimes.tiktok.model.po.Video;
+import com.lartimes.tiktok.model.video.Video;
 import lombok.Data;
 
 @Data

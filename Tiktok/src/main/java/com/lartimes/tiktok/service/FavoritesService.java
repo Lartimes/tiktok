@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lartimes.tiktok.model.po.Favorites;
+import com.lartimes.tiktok.model.user.Favorites;
 import com.lartimes.tiktok.model.vo.FavoritesVo;
 
 import java.util.List;

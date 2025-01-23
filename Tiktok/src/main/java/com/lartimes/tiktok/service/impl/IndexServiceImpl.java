@@ -2,8 +2,8 @@ package com.lartimes.tiktok.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lartimes.tiktok.constant.RedisConstant;
-import com.lartimes.tiktok.model.po.Type;
-import com.lartimes.tiktok.model.po.Video;
+import com.lartimes.tiktok.model.video.Type;
+import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.service.IndexService;
 import com.lartimes.tiktok.service.TypeService;
 import com.lartimes.tiktok.service.VideoService;

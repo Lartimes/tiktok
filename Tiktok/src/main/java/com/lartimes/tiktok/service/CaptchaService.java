@@ -1,7 +1,7 @@
 package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lartimes.tiktok.model.po.Captcha;
+import com.lartimes.tiktok.model.user.Captcha;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.awt.image.BufferedImage;

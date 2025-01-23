@@ -3,7 +3,7 @@
 <mapper namespace="com.lartimes.tiktok.mapper.RolePermissionMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.po.RolePermission">
+    <resultMap id="BaseResultMap" type="com.lartimes.tiktok.model.user.RolePermission">
         <id column="id" property="id" />
         <result column="permission_id" property="permissionId" />
         <result column="role_id" property="roleId" />
