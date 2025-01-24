@@ -29,6 +29,10 @@ public class TiktokApplicationTest {
 
     @Test
     public void test() {
+        System.out.println(System.currentTimeMillis());
+        //
+        //1737721854
+        //1737722203328
 
     }
 }

@@ -7,13 +7,18 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lartimes.tiktok.config.LocalCache;
 import com.lartimes.tiktok.config.QiNiuConfig;
 import com.lartimes.tiktok.constant.AuditStatus;
+import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.holder.UserHolder;
 import com.lartimes.tiktok.mapper.VideoMapper;
+import com.lartimes.tiktok.mapper.VideoShareMapper;
+import com.lartimes.tiktok.mapper.VideoStarMapper;
 import com.lartimes.tiktok.model.task.VideoTask;
 import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.video.File;
 import com.lartimes.tiktok.model.video.Video;
+import com.lartimes.tiktok.model.video.VideoShare;
+import com.lartimes.tiktok.model.video.VideoStar;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.FileService;
@@ -21,10 +26,16 @@ import com.lartimes.tiktok.service.TypeService;
 import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.service.audit.VideoPublishAuditService;
 import com.lartimes.tiktok.util.FileUtil;
+import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -48,14 +59,21 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     private final FileService fileService;
     private final VideoPublishAuditService videoPublishAuditService;
     private final UserServiceImpl userServiceImpl;
+    private final VideoShareMapper videoShareMapper;
+    private final VideoStarMapper videoStarMapper;
+    private final RedisCacheUtil redisCacheUtil;
+    private final RedisProperties redisProperties;
 
-    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserServiceImpl userServiceImpl) {
+    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserServiceImpl userServiceImpl, VideoShareMapper videoShareMapper, VideoStarMapper videoStarMapper, RedisCacheUtil redisCacheUtil, RedisProperties redisProperties) {
         this.typeServiceImpl = typeServiceImpl;
         this.fileService = fileService;
         this.videoPublishAuditService = videoPublishAuditService;
         this.userServiceImpl = userServiceImpl;
+        this.videoShareMapper = videoShareMapper;
+        this.videoStarMapper = videoStarMapper;
+        this.redisCacheUtil = redisCacheUtil;
+        this.redisProperties = redisProperties;
     }
-
 
     @Override
     public IPage<Video> getVideoByUserId(PageVo pageVo, Long userId) {
@@ -64,6 +82,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         }
         IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>()
                 .eq(Video::getUserId, userId)
+                .eq(Video::getDeleted, 0)
                 .eq(Video::getAuditStatus, AuditStatus.SUCCESS)
                 .orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
         final List<Video> videos = page.getRecords();
@@ -107,6 +126,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     @Override
     public Collection<Video> getVideosByIds(List<Long> videoIds) {
         Collection<Video> videos = list(new LambdaQueryWrapper<Video>().in(Video::getId, videoIds)
+                .eq(Video::getDeleted, 0)
                 .select()).stream().distinct().collect(Collectors.toCollection(ArrayList::new));
         LOG.info("videos list:{}", videos);
         if (videos.isEmpty()) {
@@ -192,5 +212,74 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         return this.videoPublishAuditService.getAuditQueueState();
     }
 
+    @Override
+    public IPage<Video> getAllVideoByUser(PageVo pageVo, Long userId) {
+        IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>().eq(Video::getUserId, userId)
+                .orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
+        setUserVoAndUrl(page.getRecords());
+        return page;
+    }
+
+    @Transactional
+    @Override
+    public boolean deleteVideoById(Long videoId, Long userId) {
+        if (videoId == null) {
+            throw new BaseException("指定视频不存在");
+        }
+        Video destVideo = getOne(new LambdaQueryWrapper<Video>()
+                .eq(Video::getId, videoId)
+                .eq(Video::getUserId, userId));
+        if (destVideo == null) {
+            throw new BaseException("非本人视频");
+        }
+        final boolean b = removeById(videoId);
+        if (b) {
+            // 解耦
+            new Thread(() -> {
+                // 删除分享量 点赞量
+//                TODO 标签兴趣推送
+                videoShareMapper.delete(new LambdaQueryWrapper<VideoShare>().eq(VideoShare::getVideoId, videoId).eq(VideoShare::getUserId, userId));
+                videoStarMapper.delete(new LambdaQueryWrapper<VideoStar>().eq(VideoStar::getVideoId, videoId).eq(VideoStar::getUserId, userId));
+//                interestPushService.deleteSystemStockIn(destVideo);
+//                interestPushService.deleteSystemTypeStockIn(destVideo);
+            }).start();
+        }
+        return b;
+    }
+
+    @Override
+    public boolean likeVideo(Long videoId, Long userId) {
+        if (videoId == null) {
+            throw new BaseException("该视频消失不见了");
+        }
+        final String likeIdStr = RedisConstant.VIDEO_LIKE_IDS + videoId;
+        final String likeNumStr = RedisConstant.VIDEO_LIKE_NUM + videoId;
+        boolean member = redisCacheUtil.isMember(likeIdStr, userId);
+//        根据是否点赞 lua脚本原子性+ -操作
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("like_video.lua")));
+        redisScript.setResultType(Long.class);
+        Long result = redisCacheUtil.getRedisTemplate().execute(redisScript, Collections.emptyList(),
+                videoId, userId);
+        if (result == null || result == -1) {
+            LOG.error("点赞失败，like_video.lua");
+            throw new BaseException("点赞失败，请重试");
+        }
+//        000000000000000000010000
+        Long starCounts = redisCacheUtil.countBits(likeNumStr);
+        LOG.info("点赞成功 : {}", result);
+        LOG.info("当前startCounts : {}", starCounts);
+
+//        TODO 更新用户模型
+//        数据分析出某个时间带你突增的GAP
+//        主动进行DB写入 ?
+//        两个时间段的set , 进行 3个集合的操作 ?
+//        点赞 %2w 超过 之前的就存入，异步写入json ？ 其他文件  对user 进行redis 分片
+//        如果redis 挂了怎么办？
+//        DB操作？
+// TODO 后续再说，此处直接写入
+//        冷机之后进行写入
+        return member;
+    }
 
 }

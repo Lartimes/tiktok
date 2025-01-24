@@ -41,7 +41,30 @@ public interface VideoService extends IService<Video> {
      * @return
      */
     boolean getQueueState();
+    /**
+     * 获取用户稿件管理所有视频
+     * @param pageVo
+     * @param userId
+     * @return
+     */
+    IPage<Video>  getAllVideoByUser(PageVo pageVo, Long userId);
 
 
+    /**
+     * 删除本人的视频
+     * @param videoId
+     * @param userId
+     * @return
+     */
+    boolean deleteVideoById(Long videoId, Long userId);
+
+
+    /**
+     * 点赞/取消点赞
+     * @param videoId
+     * @param aLong
+     * @return
+     */
+    boolean likeVideo(Long videoId, Long aLong);
 
 }

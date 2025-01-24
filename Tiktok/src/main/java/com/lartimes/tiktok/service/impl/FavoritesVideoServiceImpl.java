@@ -13,7 +13,6 @@ import com.lartimes.tiktok.service.VideoService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -31,9 +30,13 @@ import java.util.List;
 public class FavoritesVideoServiceImpl extends ServiceImpl<FavoritesVideoMapper, FavoritesVideo> implements FavoritesVideoService {
     private static final Logger LOG = LogManager.getLogger(FavoritesVideoServiceImpl.class);
 
-    @Autowired
-    private FavoritesServiceImpl favoritesService;
-    private VideoService videoService;
+    private final FavoritesServiceImpl favoritesService;
+    private final VideoService videoService;
+
+    public FavoritesVideoServiceImpl(FavoritesServiceImpl favoritesService, VideoService videoService) {
+        this.favoritesService = favoritesService;
+        this.videoService = videoService;
+    }
 
     @Override
     public Collection<Video> getFavoritesVideo(Long favoritesId, Long userId) {

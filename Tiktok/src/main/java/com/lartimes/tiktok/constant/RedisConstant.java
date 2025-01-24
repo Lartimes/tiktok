@@ -8,6 +8,11 @@ package com.lartimes.tiktok.constant;
  */
 public interface RedisConstant {
 
+//    视频start 总数
+    String VIDEO_LIKE_NUM = "video:star:num:";
+//    视频start 用户IDS
+    String VIDEO_LIKE_IDS = "video:star:ids:";
+
     String USER_MODEL = "user:model:";
 
     // 用于兴趣推送时去重   和下面的浏览记录存储数据结构不同  这里只需要存id
