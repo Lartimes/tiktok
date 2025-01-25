@@ -17,4 +17,5 @@
         id, video_id, user_id, is_deleted, gmt_created, gmt_updated
     </sql>
 
+
 </mapper>

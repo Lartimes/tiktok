@@ -19,9 +19,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,26 +35,27 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
     private static final Logger LOG = LogManager.getLogger(VideoScheduledServiceImpl.class);
     private static final long PAGE_SIZE = 100L;
     private static final int BATCH_SIZE = 1000;
-    private final SqlSessionFactory sqlSessionFactory;
-    private final DataSource longConnectionDataSource;
-    private final RedisCacheUtil redisCacheUtil;
+    @Autowired
+    private RedisCacheUtil redisCacheUtil;
     @Autowired
     private VideoMapper videoMapper;
     @Autowired
     private VideoStarMapper videoStarMapper;
+    @Autowired
+    @Qualifier("batchSqlSessionFactory")
+    private SqlSessionFactory batchSqlSessionFactory;
 
-    public VideoScheduledServiceImpl(@Qualifier("longConnectionDataSource") DataSource longConnectionDataSource, SqlSessionFactory sqlSessionFactory, RedisCacheUtil redisCacheUtil) {
-        this.longConnectionDataSource = longConnectionDataSource;
-        this.sqlSessionFactory = sqlSessionFactory;
-        this.redisCacheUtil = redisCacheUtil;
-    }
 
     @Scheduled(cron = "0 0/30 * * * ?") // 每 30 分钟的第 0 秒执行一次
     @Override
     public void updateVideoStar() {
-        try (SqlSession sqlSession = sqlSessionFactory.openSession(longConnectionDataSource.getConnection())) {
+        try (SqlSession sqlSession = batchSqlSessionFactory.openSession()) {
 //                list foreach ---> 执行？
+            long now = System.currentTimeMillis();
+            LOG.info("定时任务updateVideoStar(): 获取长连接connection,以及batch sqlsession");
             updateVideoStar(sqlSession);
+            long then = System.currentTimeMillis();
+            LOG.info("定时任务updateVideoStar(): 完成,耗时:{}秒", (then - now) / 1e3);
         } catch (Exception e) {
             LOG.error(e.getMessage());
             throw new BaseException(e.getMessage());
@@ -68,6 +68,7 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
 //        List<String> keys = redisCacheUtil.getKeysByPrefix(RedisConstant.VIDEO_LIKE_IDS);
         Set<Long> videoIds = videoMapper.selectList(new LambdaQueryWrapper<Video>()
                 .select(Video::getId)).stream().map(Video::getId).collect(Collectors.toSet());
+        LOG.info("updateVideoStar(SqlSession sqlSession): 逐步写入redis db likeIDs");
         for (Long videoId : videoIds) {
 //            分页返回，写入zset
             Long count = videoStarMapper.selectCount(new LambdaQueryWrapper<VideoStar>()
@@ -87,15 +88,16 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
                 }
             }
         }
-        try (Connection connection = sqlSession.getConnection()) {
-            connection.setAutoCommit(false);
+        LOG.info("进行集合运算，进行更新DB :  db ∩ redis");
+        try {
             VideoStarMapper mapper = sqlSession.getMapper(VideoStarMapper.class);
 //            两个集合进行筛选出独特的 一个remove ， 一个update
             for (Long videoId : videoIds) {
                 String tmp = "diff:" + videoId;
                 Set<Long> removedIds = redisCacheUtil.differenceIntersectionAlternative("DB:" + RedisConstant.VIDEO_LIKE_IDS + videoId,
                         RedisConstant.VIDEO_LIKE_IDS + videoId, tmp).stream().map((id -> Long.parseLong(id.toString()))).collect(Collectors.toSet());
-                Set<VideoStar> addedStars = redisCacheUtil.differenceIntersectionAlternative(RedisConstant.VIDEO_LIKE_IDS + videoId,
+                LOG.info("removedIds : {}", removedIds);
+                List<VideoStar> addedStars = redisCacheUtil.differenceIntersectionAlternative(RedisConstant.VIDEO_LIKE_IDS + videoId,
                                 "DB:" + RedisConstant.VIDEO_LIKE_IDS + videoId, tmp).stream()
                         .map(((id -> {
                             VideoStar videoStar = new VideoStar();
@@ -104,20 +106,34 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
                             videoStar.setUserId(Long.parseLong(id.toString()));
                             videoStar.setVideoId(videoId);
                             return videoStar;
-                        }))).collect(Collectors.toSet());
+                        }))).toList();
+                LOG.info("addedStars : {}", addedStars);
                 //                db - db ∩ redis
-//                redis - db ∩ redis
-                mapper.deleteBatchIds(removedIds);
+                //                redis - db ∩ redis
+                boolean isUnliked = !removedIds.isEmpty();
+                if (isUnliked) {
+                    mapper.delete(new LambdaQueryWrapper<VideoStar>()
+                            .eq(VideoStar::getVideoId, videoId)
+                            .in(VideoStar::getUserId, removedIds));
+                }
+                LOG.info("videoId 三十分钟内{}取消点赞:{}", isUnliked ? "有" : "无", removedIds.size());
                 int size = addedStars.size();
+                if (size == 0) {
+                    LOG.info("videoId 三十分钟内无点赞:{}", videoId);
+                    continue;
+                }
+                int count = 0;
                 for (int i = 0; i < size; i += BATCH_SIZE) {
                     int end = Math.min(i + BATCH_SIZE, size);
-//                    TODO 批量插入
-                    boolean result = this.saveBatch(userList.subList(i, end));
+                    count += mapper.insertBatchSomeColumn(addedStars.subList(i, end));
                 }
-
-
+                if (count == size) {
+                    LOG.info("异步写入DB成功---videoId:{}", videoId);
+                }
             }
+            sqlSession.commit();
         } catch (Exception e) {
+            sqlSession.rollback(true);
             LOG.error(e.getMessage());
             throw new BaseException(e.getMessage());
         }

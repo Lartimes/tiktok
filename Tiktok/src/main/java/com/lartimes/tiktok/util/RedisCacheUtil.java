@@ -1,5 +1,6 @@
 package com.lartimes.tiktok.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
  * @since 2024/12/2 13:19
  */
 @Component
+@Slf4j
 public class RedisCacheUtil {
 
 
@@ -65,12 +67,21 @@ public class RedisCacheUtil {
      * @param dest 目标键，用于存储结果
      * @return 结果集合
      */
-    public Set<Object> differenceIntersectionAlternative(String keyA, String keyB, String dest) {
-        if(Boolean.FALSE.equals(redisTemplate.hasKey(dest))){
-            redisTemplate.opsForSet().intersectAndStore(keyA, keyB, dest);
-            expireBySeconds(dest , 60 * 20); //20min
+    public Collection<Object> differenceIntersectionAlternative(String keyA, String keyB, String dest) {
+        log.info("keyA , keyB , dest : {} , {} ,{}", keyA, keyB, dest);
+        ZSetOperations<String, Object> zSetOperations = redisTemplate.opsForZSet();
+//        ab 不存在的话， 初始化一个null
+        if (!hashKey(keyA)) {
+            return Collections.emptyList();
         }
-        return redisTemplate.opsForSet().difference(keyA, dest);
+        if (!hashKey(keyB)) {
+            return getZSetByKey(keyA); //不存在交集
+        }
+        if (!hashKey(dest)) {
+            zSetOperations.intersectAndStore(keyA, keyB, dest);
+            expireBySeconds(dest, 60 * 20);//20min -- 30min
+        }
+        return zSetOperations.difference(keyA, dest);
     }
 
     public boolean isMember(String key, Long userId) {
@@ -136,7 +147,7 @@ public class RedisCacheUtil {
     public Boolean addMembers(String key, Set<Object> members) {
         ZSetOperations<String, Object> zSetOps = redisTemplate.opsForZSet();
         Set<ZSetOperations.TypedTuple<Object>> tuples = members.stream()
-                .map(member -> new DefaultTypedTuple<Object>(member, null))
+                .map(member -> new DefaultTypedTuple<Object>(member, System.currentTimeMillis() / 1e3))
                 .collect(Collectors.toSet());
         Long add = zSetOps.add(key, tuples);
         if (add != null) {
@@ -163,6 +174,7 @@ public class RedisCacheUtil {
         }
     }
 
+
     /**
      * 是否存在普通的key
      *
@@ -171,7 +183,8 @@ public class RedisCacheUtil {
      */
     public boolean hashKey(String key) {
         try {
-            return redisTemplate.opsForValue().get(key) != null;
+            return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+//            return redisTemplate.opsForValue().get(key) != null;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -186,16 +199,7 @@ public class RedisCacheUtil {
      * @return
      */
     public boolean expireBySeconds(String key, long time) {
-        try {
-            if (Boolean.TRUE.equals(redisTemplate.expire(key, time, TimeUnit.SECONDS))) {
-                return true;
-            }
-            return this.set(key, null, time);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-
+        return Boolean.TRUE.equals(redisTemplate.expire(key, time, TimeUnit.SECONDS));
     }
 
     public boolean set(String key, Object value, long time) {
