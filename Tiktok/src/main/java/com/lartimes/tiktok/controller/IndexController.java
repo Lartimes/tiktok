@@ -1,13 +1,16 @@
 package com.lartimes.tiktok.controller;
 
+import com.lartimes.tiktok.model.video.VideoShare;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.service.IndexService;
-import com.lartimes.tiktok.service.impl.VideoServiceImpl;
+import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.R;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
 
 /**
  * @author wüsch
@@ -23,15 +26,48 @@ public class IndexController {
     @Autowired
     private JWTUtils jWTUtils;
     @Autowired
-    private VideoServiceImpl videoServiceImpl;
+    private VideoService videoService;
 
-// /index/video/user?userId=19&page=1&limit=10
 
+    //    参数,可能是标题,用户,YV
+
+    /**
+     * @param searchName
+     * @param pageVo
+     * @param request
+     * @return
+     * @version 1.0 //TODO 后续加入完善的搜索服务
+     */
+    @GetMapping("/search")
+    public R searchVideo(@RequestParam(value = "searchName", required = false) String searchName,
+                         PageVo pageVo,
+                         HttpServletRequest request) {
+//           YV , 用户 ， 标题
+        return R.ok().data(videoService.searchVideo(searchName, pageVo, jWTUtils.getUserId(request)));
+    }
+
+    @PostMapping("/index/share/{videoId}")
+    public R shareVideo(@PathVariable("videoId") Long videoId, HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress != null && ipAddress.contains(",")) {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        VideoShare videoShare = new VideoShare();
+        videoShare.setVideoId(videoId);
+        videoShare.setIp(ipAddress);
+        if (jWTUtils.checkToken(request)) {
+            videoShare.setUserId(jWTUtils.getUserId(request));
+        }
+        videoService.shareVideoOrUpdate(videoShare);
+        return R.ok();
+    }
+
+    // /index/video/user?userId=19&page=1&limit=10
     @GetMapping("/video/user")
-    private R getUserVideo(@RequestParam(required = false) Long userId,
-                           PageVo pageVo, HttpServletRequest request) {
+    public R getUserVideo(@RequestParam(required = false) Long userId,
+                          PageVo pageVo, HttpServletRequest request) {
         userId = userId == null ? jWTUtils.getUserId(request) : userId;
-        return R.ok().data(videoServiceImpl.getVideoByUserId(pageVo, userId));
+        return R.ok().data(videoService.getVideoByUserId(pageVo, userId));
     }
 
     /**
@@ -57,6 +93,10 @@ public class IndexController {
                 "删除成功" : "失败，请重试");
     }
 
+    @GetMapping("/index/video/{videoId}")
+    public R getVideoInfo(@PathVariable Long videoId, HttpServletRequest request) {
+        return R.ok().data(videoService.getVideosByIds(Collections.singletonList(videoId)).stream().findFirst().get());
+    }
 
     /**
      * 根据视频获取type
@@ -75,8 +115,8 @@ public class IndexController {
      * @return
      */
     @RequestMapping("/types")
-    public R getVideoTypes() {
-        return R.ok().data(indexService.getAllTypes());
+    public R getVideoTypes(HttpServletRequest request) {
+        return R.ok().data(indexService.getAllTypes(request));
     }
 
 

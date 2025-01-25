@@ -1,6 +1,7 @@
 package com.lartimes.tiktok.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -23,6 +24,7 @@ import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.FileService;
 import com.lartimes.tiktok.service.TypeService;
+import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.service.audit.VideoPublishAuditService;
 import com.lartimes.tiktok.util.FileUtil;
@@ -30,7 +32,6 @@ import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
@@ -55,24 +56,23 @@ import java.util.stream.Collectors;
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements VideoService {
     private static final Logger LOG = LogManager.getLogger(VideoServiceImpl.class);
+    private static final int YV_LENGTH = "YVe564449ea12741ba8e1c6fa1".length();
     private final TypeService typeServiceImpl;
     private final FileService fileService;
     private final VideoPublishAuditService videoPublishAuditService;
-    private final UserServiceImpl userServiceImpl;
+    private final UserService userService;
     private final VideoShareMapper videoShareMapper;
     private final VideoStarMapper videoStarMapper;
     private final RedisCacheUtil redisCacheUtil;
-    private final RedisProperties redisProperties;
 
-    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserServiceImpl userServiceImpl, VideoShareMapper videoShareMapper, VideoStarMapper videoStarMapper, RedisCacheUtil redisCacheUtil, RedisProperties redisProperties) {
+    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserService userService, VideoShareMapper videoShareMapper, VideoStarMapper videoStarMapper, RedisCacheUtil redisCacheUtil) {
         this.typeServiceImpl = typeServiceImpl;
         this.fileService = fileService;
         this.videoPublishAuditService = videoPublishAuditService;
-        this.userServiceImpl = userServiceImpl;
+        this.userService = userService;
         this.videoShareMapper = videoShareMapper;
         this.videoStarMapper = videoStarMapper;
         this.redisCacheUtil = redisCacheUtil;
-        this.redisProperties = redisProperties;
     }
 
     @Override
@@ -80,11 +80,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (userId == null) {
             return new Page<>();
         }
-        IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>()
-                .eq(Video::getUserId, userId)
-                .eq(Video::getDeleted, 0)
-                .eq(Video::getAuditStatus, AuditStatus.SUCCESS)
-                .orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
+        IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>().eq(Video::getUserId, userId).eq(Video::getDeleted, 0).eq(Video::getAuditStatus, AuditStatus.SUCCESS).orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
         final List<Video> videos = page.getRecords();
         setUserVoAndUrl(videos);
         return page;
@@ -107,7 +103,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             fileIds.add(video.getCover());
         });
         Map<Long, File> fileMap = fileService.listByIds(fileIds).stream().collect(Collectors.toMap(File::getId, Function.identity()));
-        Map<Long, User> userMap = userServiceImpl.listByIds(userIdSet).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        Map<Long, User> userMap = userService.listByIds(userIdSet).stream().collect(Collectors.toMap(User::getId, Function.identity()));
         for (Video video : videos) {
             final UserVO userVO = new UserVO();
             final User user = userMap.get(video.getUserId());
@@ -125,9 +121,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Override
     public Collection<Video> getVideosByIds(List<Long> videoIds) {
-        Collection<Video> videos = list(new LambdaQueryWrapper<Video>().in(Video::getId, videoIds)
-                .eq(Video::getDeleted, 0)
-                .select()).stream().distinct().collect(Collectors.toCollection(ArrayList::new));
+        Collection<Video> videos = list(new LambdaQueryWrapper<Video>().in(Video::getId, videoIds).eq(Video::getDeleted, 0).select()).stream().distinct().collect(Collectors.toCollection(ArrayList::new));
         LOG.info("videos list:{}", videos);
         if (videos.isEmpty()) {
             return Collections.emptyList();
@@ -143,11 +137,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         Video oldVideo = null;
         Long priId = video.getId();
         if (priId != null) {
-            oldVideo = getOne(new LambdaQueryWrapper<Video>()
-                    .eq(Video::getUserId, userId)
-                    .eq(Video::getId, priId));
-            if (!(video.getVideoUrl()).equals(oldVideo.getVideoUrl()) ||
-                    !(video.getCoverUrl().equals(oldVideo.getCoverUrl()))) {
+            oldVideo = getOne(new LambdaQueryWrapper<Video>().eq(Video::getUserId, userId).eq(Video::getId, priId));
+            if (!(video.getVideoUrl()).equals(oldVideo.getVideoUrl()) || !(video.getCoverUrl().equals(oldVideo.getCoverUrl()))) {
                 throw new BaseException("不能更换视频源,只能修改视频信息");
             }
         }
@@ -214,8 +205,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Override
     public IPage<Video> getAllVideoByUser(PageVo pageVo, Long userId) {
-        IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>().eq(Video::getUserId, userId)
-                .orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
+        IPage<Video> page = page(pageVo.page(), new LambdaQueryWrapper<Video>().eq(Video::getUserId, userId).orderByDesc(Video::getGmtCreated, Video::getGmtUpdated));
         setUserVoAndUrl(page.getRecords());
         return page;
     }
@@ -226,9 +216,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (videoId == null) {
             throw new BaseException("指定视频不存在");
         }
-        Video destVideo = getOne(new LambdaQueryWrapper<Video>()
-                .eq(Video::getId, videoId)
-                .eq(Video::getUserId, userId));
+        Video destVideo = getOne(new LambdaQueryWrapper<Video>().eq(Video::getId, videoId).eq(Video::getUserId, userId));
         if (destVideo == null) {
             throw new BaseException("非本人视频");
         }
@@ -249,7 +237,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Override
     public boolean likeVideo(Long videoId, Long userId) {
-        if (videoId == null) {
+
+        Video video = getOne(new LambdaQueryWrapper<Video>().eq(videoId != null, Video::getId, videoId));
+        if (video == null) {
             throw new BaseException("该视频消失不见了");
         }
         final String likeIdStr = RedisConstant.VIDEO_LIKE_IDS + videoId;
@@ -259,8 +249,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("like_video.lua")));
         redisScript.setResultType(Long.class);
-        Long result = redisCacheUtil.getRedisTemplate().execute(redisScript, Collections.emptyList(),
-                videoId, userId);
+        Long result = redisCacheUtil.getRedisTemplate().execute(redisScript, Collections.emptyList(), videoId, userId);
         if (result == null || result == -1) {
             LOG.error("点赞失败，like_video.lua");
             throw new BaseException("点赞失败，请重试");
@@ -269,8 +258,14 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         Long starCounts = redisCacheUtil.countBits(likeNumStr);
         LOG.info("点赞成功 : {}", result);
         LOG.info("当前startCounts : {}", starCounts);
-
+//        异步改变用户模型
+        // 获取标签
 //        TODO 更新用户模型
+        new Thread(() -> {
+            List<String> labels = video.buildLabel();
+//            UserModel userModel = UserModel.buildUserModel(labels, videoId, 1.0);
+//            interestPushService.updateUserModel(userModel);
+        }).start();
 //        数据分析出某个时间带你突增的GAP
 //        主动进行DB写入 ?
 //        两个时间段的set , 进行 3个集合的操作 ?
@@ -280,6 +275,60 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 // TODO 后续再说，此处直接写入
 //        冷机之后进行写入
         return member;
+    }
+
+    @Override
+    public void shareVideoOrUpdate(VideoShare videoShare) {
+        final Video video = getById(videoShare.getVideoId());
+        if (video == null) throw new BaseException("指定视频不存在");
+        boolean result = doShare(videoShare);
+        updateShare(video, result ? 1L : 0L);
+    }
+
+    //TODO Binlog 监听 是异步、解耦的数据同步方案，适合 MySQL 到 Elasticsearch 的实时同步。
+    @Override
+    public IPage<Video> searchVideo(String searchName, PageVo pageVo, Long userId) {
+        IPage page = pageVo.page();
+        LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<Video>().eq(Video::getAuditStatus, AuditStatus.SUCCESS);
+        int index = searchName.indexOf("YV");
+        boolean flag = false;
+        if (StringUtils.hasText(searchName)) {
+            searchName = searchName.trim();
+            flag = true;
+        }
+        if (flag && index >= 0) {
+            String substring = searchName.substring(index, index + YV_LENGTH);
+            LOG.info("搜索YV号:{}", substring);
+            queryWrapper.like(Video::getYv, substring);
+        } else if (flag) {
+//            TODO 分词器
+            LOG.info("模糊查询:{}", searchName);
+            queryWrapper.like(Video::getTitle, searchName);
+        }
+        IPage<Video> result = page(page, queryWrapper);
+        List<Video> videoList = result.getRecords();
+        setUserVoAndUrl(videoList);
+        userService.addSearchHistory(userId ,searchName );
+        return result;
+    }
+
+    //    行锁 最简单，效率快
+    private void updateShare(Video video, long signal) {
+        final UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.setSql("share_count = share_count + " + signal);
+        updateWrapper.lambda().eq(Video::getId, video.getId()).eq(Video::getShareCount, video.getShareCount());
+        update(video, updateWrapper);
+    }
+
+    // ip + videoId 作为唯一索引 |  insert ignore
+    private boolean doShare(VideoShare videoShare) {
+        try {
+//            Ip + videoId 作为唯一索引
+            videoShareMapper.insert(videoShare);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
 }

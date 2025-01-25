@@ -2,6 +2,7 @@ package com.lartimes.tiktok.service;
 
 import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.video.Video;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +42,7 @@ public interface IndexService {
      * 获取所有类型
      * @return
      */
-    List<Type> getAllTypes();
+    List<Type> getAllTypes(HttpServletRequest request);
 
 
 }

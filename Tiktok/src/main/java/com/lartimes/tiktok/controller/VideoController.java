@@ -28,19 +28,21 @@ public class VideoController {
     @Autowired
     private VideoService videoService;
 
-
     @Autowired
     private FavoritesVideoService favoritesVideoService;
 
 
 
+
     @PostMapping("/star/{videoId}")
-    public  R likeVideo(@PathVariable Long videoId){
-        boolean liked =videoService.likeVideo(videoId , UserHolder.get());
-        return R.ok().message(liked ?"取消点赞" : "已点赞");
+    public R likeVideo(@PathVariable Long videoId) {
+        boolean liked = videoService.likeVideo(videoId, UserHolder.get());
+        return R.ok().message(liked ? "取消点赞" : "已点赞");
     }
+
     /**
      * 审核队列状态
+     *
      * @return
      */
     @GetMapping("/audit/queue/state")
@@ -55,6 +57,7 @@ public class VideoController {
 
     /**
      * 发布/修改视频
+     *
      * @param video
      * @param request
      * @return
@@ -70,13 +73,14 @@ public class VideoController {
 
     /**
      * 稿件管理
+     *
      * @param pageVo
      * @return
      */
     @GetMapping
     public R getUserVideo(PageVo pageVo) {
         Long userId = UserHolder.get();
-        return R.ok().data(videoService.getAllVideoByUser(pageVo , userId));
+        return R.ok().data(videoService.getAllVideoByUser(pageVo, userId));
     }
 
 
@@ -93,12 +97,13 @@ public class VideoController {
 
     /**
      * 删除视频
+     *
      * @param id
      * @return
      */
     @DeleteMapping("/{id}")
     public R deleteVideo(@PathVariable Long id) {
-        return R.ok().message(videoService.deleteVideoById(id ,  UserHolder.get()) ? "删除成功" : "删除失败");
+        return R.ok().message(videoService.deleteVideoById(id, UserHolder.get()) ? "删除成功" : "删除失败");
     }
 
     /**

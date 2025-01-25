@@ -6,8 +6,11 @@ import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.service.IndexService;
 import com.lartimes.tiktok.service.TypeService;
+import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.service.VideoService;
+import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.RedisCacheUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +38,10 @@ public class IndexServiceImpl implements IndexService {
     private VideoService videoService;
     @Autowired
     private TypeService typeService;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private JWTUtils jwtUtils;
 
     @Override
     public Collection<String> getSearchHistory(Long userId) {
@@ -70,8 +77,15 @@ public class IndexServiceImpl implements IndexService {
     }
 
     @Override
-    public List<Type> getAllTypes() {
-        return typeService.getBaseMapper().selectList(null);
+    public List<Type> getAllTypes(HttpServletRequest request) {
+        List<Type> types = typeService.getBaseMapper().selectList(new LambdaQueryWrapper<Type>().select(Type::getIcon, Type::getId, Type::getName)
+                .orderByDesc(Type::getSort));
+//        final Set<Long> set = userService.listSubscribeType(jwtUtils.getUserId(request))
+//                .stream().map(Type::getId).collect(Collectors.toSet());
+//        for (Type type : types) {
+//            type.setOpen(set.contains(type.getId()));
+//        }
+        return types;
     }
 
 

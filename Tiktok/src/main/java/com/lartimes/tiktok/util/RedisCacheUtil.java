@@ -3,6 +3,7 @@ package com.lartimes.tiktok.util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.*;
+import org.springframework.data.web.config.SortHandlerMethodArgumentResolverCustomizer;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -21,9 +22,11 @@ public class RedisCacheUtil {
 
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final SortHandlerMethodArgumentResolverCustomizer sortCustomizer;
 
-    public RedisCacheUtil(RedisTemplate<String, Object> redisTemplate) {
+    public RedisCacheUtil(RedisTemplate<String, Object> redisTemplate, SortHandlerMethodArgumentResolverCustomizer sortCustomizer) {
         this.redisTemplate = redisTemplate;
+        this.sortCustomizer = sortCustomizer;
     }
 
     public RedisTemplate<String, Object> getRedisTemplate() {
@@ -124,12 +127,11 @@ public class RedisCacheUtil {
      * @param score
      * @return
      */
-    public Boolean addZSetWithScores(String key, Long userId, Double score) {
+    public Boolean addZSetWithScores(String key, Object userId, Double score) {
 
         try {
-            Date date = new Date();
             if (score == null) {
-                score = (double) date.getTime();
+                score = (System.currentTimeMillis() / 1e3);
             }
             return redisTemplate.opsForZSet().add(key, userId, score);
         } catch (Exception e) {

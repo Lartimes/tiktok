@@ -65,5 +65,10 @@ public interface UserService extends IService<User> {
      */
     Boolean followUser(Long followUserId);
 
-
+    /**
+     * 添加搜索记录
+     * @param userId
+     * @param searchName
+     */
+    void addSearchHistory(Long userId, String searchName);
 }

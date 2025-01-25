@@ -3,6 +3,7 @@ package com.lartimes.tiktok.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.holder.UserHolder;
 import com.lartimes.tiktok.mapper.UserMapper;
@@ -14,7 +15,9 @@ import com.lartimes.tiktok.model.vo.RegisterVO;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.FavoritesService;
 import com.lartimes.tiktok.service.FollowService;
+import com.lartimes.tiktok.service.UserRoleService;
 import com.lartimes.tiktok.service.UserService;
+import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +51,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private FollowService followService;
     @Autowired
-    private UserRoleServiceImpl userRoleServiceImpl;
+    private UserRoleService userRoleService;
+    @Autowired
+    private RedisCacheUtil redisCacheUtil;
 
 
     @Transactional
@@ -127,7 +132,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User selected = getOne(new LambdaQueryWrapper<User>()
                 .eq(User::getId, userVO.getId()));
         BeanUtils.copyProperties(selected, user);
-        LOG.info("用户old 信息: {}" , selected);
+        LOG.info("用户old 信息: {}", selected);
         BeanUtils.copyProperties(userVO, user);
         user.setGmtCreated(LocalDateTime.now());
         if (this.baseMapper.updateById(user) > 0) {
@@ -208,6 +213,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Long userId = UserHolder.get();
         LOG.info("进行取关/关注操作");
         return followService.follow(userId, followUserId);
+    }
+
+    @Override
+    public void addSearchHistory(Long userId, String searchName) {
+        if (userId != null) {
+            String key = RedisConstant.USER_SEARCH_HISTORY + userId;
+            redisCacheUtil.addZSetWithScores(key, searchName, null);
+            redisCacheUtil.expireBySeconds(key, RedisConstant.USER_SEARCH_HISTORY_TIME);
+        }
     }
 
 

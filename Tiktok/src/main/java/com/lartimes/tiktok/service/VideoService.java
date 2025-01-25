@@ -3,6 +3,7 @@ package com.lartimes.tiktok.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lartimes.tiktok.model.video.Video;
+import com.lartimes.tiktok.model.video.VideoShare;
 import com.lartimes.tiktok.model.vo.PageVo;
 
 import java.util.Collection;
@@ -67,4 +68,18 @@ public interface VideoService extends IService<Video> {
      */
     boolean likeVideo(Long videoId, Long aLong);
 
+    /**
+     * 更新分享视频/修改时间
+     * @param videoShare
+     */
+    void shareVideoOrUpdate(VideoShare videoShare);
+
+    /**
+     * 搜索视频 用户？ 标题 ？ YV号
+     * @param searchName
+     * @param pageVo
+     * @param userId
+     * @return
+     */
+    IPage<Video> searchVideo(String searchName, PageVo pageVo, Long userId);
 }
