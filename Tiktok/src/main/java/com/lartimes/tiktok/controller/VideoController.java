@@ -119,5 +119,10 @@ public class VideoController {
         return R.ok().message(favoritesVideoService.addFavorites(fId, vId) ? "收藏成功" : "收藏失败");
     }
 
+
+    @GetMapping("/follow/feed")
+    private R pushFollowVideo() {
+
+    }
 }
 

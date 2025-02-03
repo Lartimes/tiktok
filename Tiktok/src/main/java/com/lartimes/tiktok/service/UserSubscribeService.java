@@ -13,4 +13,5 @@ import com.lartimes.tiktok.model.user.UserSubscribe;
  */
 public interface UserSubscribeService extends IService<UserSubscribe> {
 
+
 }

@@ -32,6 +32,10 @@ public class RedisCacheUtil {
     public RedisTemplate<String, Object> getRedisTemplate() {
         return redisTemplate;
     }
+    // 接受一个管道
+    public List pipeline(RedisCallback redisCallback){
+        return redisTemplate.executePipelined(redisCallback);
+    }
 
     /**
      * 获取以指定前缀开头的所有键
@@ -242,4 +246,17 @@ public class RedisCacheUtil {
         return bitValue != null ? bitValue ? 1L : 0L : 0L;
     }
 
+    /**
+     * 根据key 获取list
+     * @param arr
+     * @return
+     */
+    public Collection<Object> sRandom(ArrayList<String> arr) {
+       return redisTemplate.executePipelined((RedisCallback<?>) connection -> {
+            for (String s : arr) {
+                connection.zSetCommands().zRandMember(s.getBytes());
+            }
+            return null;
+        });
+    }
 }

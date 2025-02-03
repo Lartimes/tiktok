@@ -15,6 +15,7 @@ import java.util.Collection;
  */
 @Mapper
 public interface VideoStarMapper extends BaseMapper<VideoStar> {
+
     Integer insertBatchSomeColumn(Collection<VideoStar> entityList);
 
 }

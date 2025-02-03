@@ -45,4 +45,6 @@ public interface IndexService {
     List<Type> getAllTypes(HttpServletRequest request);
 
 
+
+
 }

@@ -2,12 +2,19 @@ package com.lartimes.tiktok.schedule.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lartimes.tiktok.constant.AuditStatus;
 import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.exception.BaseException;
+import com.lartimes.tiktok.mapper.SysSettingMapper;
 import com.lartimes.tiktok.mapper.VideoMapper;
 import com.lartimes.tiktok.mapper.VideoStarMapper;
+import com.lartimes.tiktok.model.SysSetting;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.video.VideoStar;
+import com.lartimes.tiktok.model.vo.HotVideo;
+import com.lartimes.tiktok.schedule.TopK;
 import com.lartimes.tiktok.schedule.VideoScheduledService;
 import com.lartimes.tiktok.util.RedisCacheUtil;
 import org.apache.ibatis.session.SqlSession;
@@ -16,12 +23,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +46,11 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
     private static final Logger LOG = LogManager.getLogger(VideoScheduledServiceImpl.class);
     private static final long PAGE_SIZE = 100L;
     private static final int BATCH_SIZE = 1000;
+    static double a = 0.011;
+
+    private final Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+    @Autowired
+    private ObjectMapper objectMapper;
     @Autowired
     private RedisCacheUtil redisCacheUtil;
     @Autowired
@@ -44,7 +60,17 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
     @Autowired
     @Qualifier("batchSqlSessionFactory")
     private SqlSessionFactory batchSqlSessionFactory;
+    @Autowired
+    private SysSettingMapper sysSettingMapper;
 
+    /**
+     * 将 LocalDateTime 转换为毫秒数
+     */
+    private static long toEpochMilli(LocalDateTime localDateTime) {
+        ZoneId zoneId = ZoneId.systemDefault();
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        return zonedDateTime.toInstant().toEpochMilli();
+    }
 
     @Scheduled(cron = "0 0/30 * * * ?") // 每 30 分钟的第 0 秒执行一次
     @Override
@@ -138,4 +164,115 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
             throw new BaseException(e.getMessage());
         }
     }
+
+    @Scheduled(cron = "0 0 */1 * * ?")
+    @Override
+    public void hotRankTopN() {
+        // 控制数量
+//        最小堆
+        final TopK topK = new TopK(10, new PriorityQueue<HotVideo>(10,
+                Comparator.comparing(HotVideo::getHot)));
+        long limit = 1000;
+        long id = 0;
+        // 每次拿1000个
+        List<Video> videos = videoMapper.selectList(new LambdaQueryWrapper<Video>()
+                .select(Video::getId, Video::getShareCount, Video::getHistoryCount,
+                        Video::getStartCount, Video::getFavoritesCount,
+                        Video::getGmtCreated, Video::getTitle)
+                .gt(Video::getId, id)
+                .eq(Video::getAuditStatus, AuditStatus.SUCCESS)
+                .eq(Video::getOpen, 0)
+                .last("limit " + limit));
+        while (!ObjectUtils.isEmpty(videos)) {
+            for (Video video : videos) {
+                Long shareCount = video.getShareCount();
+                Double historyCount = video.getHistoryCount() * 0.8;
+                Long startCount = video.getStartCount();
+                Double favoritesCount = video.getFavoritesCount() * 1.5;
+                LocalDateTime now = LocalDateTime.now();
+                long t = toEpochMilli(now) - toEpochMilli(video.getGmtCreated());
+//                去重 + 随机数
+                final double v = weightRandom();
+                final double hot = hot(shareCount + historyCount + startCount + favoritesCount + v, TimeUnit.MILLISECONDS.toDays(t));
+                final HotVideo hotVideo = new HotVideo(hot, video.getId(), video.getTitle());
+                topK.add(hotVideo);
+            }
+            id = videos.get(videos.size() - 1).getId();
+            videos = videoMapper.selectList(new LambdaQueryWrapper<Video>()
+                    .select(Video::getId, Video::getShareCount, Video::getHistoryCount,
+                            Video::getStartCount, Video::getFavoritesCount,
+                            Video::getGmtCreated, Video::getTitle)
+                    .gt(Video::getId, id)
+                    .eq(Video::getAuditStatus, AuditStatus.SUCCESS)
+                    .eq(Video::getOpen, 0)
+                    .last("limit " + limit));
+        }
+        byte[] rankBytes = RedisConstant.HOT_RANK.getBytes();
+        List<HotVideo> hotVideos = topK.get();
+        Double minHot = hotVideos.get(0).getHot();
+        redisCacheUtil.pipeline(connection -> {
+            for (HotVideo hotVideo : hotVideos) {
+                Double hot = hotVideo.getHot();
+                hotVideo.setHot(null);
+                try {
+                    connection.zAdd(rankBytes, hot, Objects.requireNonNull(jackson2JsonRedisSerializer.serialize(objectMapper.writeValueAsBytes(hotVideo))));
+                } catch (JsonProcessingException e) {
+                    LOG.error(e.getMessage());
+                }
+            }
+            return null;
+        });
+        redisCacheUtil.getRedisTemplate().opsForZSet().removeRangeByScore(RedisConstant.HOT_RANK, minHot, 0);
+    }
+
+    // 热门视频,没有热度排行榜实时且重要
+    @Scheduled(cron = "0 0 */3 * * ?")
+    @Override
+    public void hotVideo() {
+        final Double hotLimit = sysSettingMapper.selectList(new LambdaQueryWrapper<SysSetting>()).get(0).getHotLimit();
+        long startId = 0L;
+        int limit = 1000;
+        LocalDateTime now = LocalDateTime.now();
+        int dayOfMonth = now.getDayOfMonth();
+        List<Video> videos = videoMapper.selectNDaysAgeVideo(startId, 999, limit);
+        LOG.info("进行推送hotVideo..................");
+        while (!ObjectUtils.isEmpty(videos)) {
+            final ArrayList<Long> hotVideos = new ArrayList<>();
+            for (Video video : videos) {
+                Long shareCount = video.getShareCount();
+                Double historyCount = video.getHistoryCount() * 0.8;
+                Long startCount = video.getStartCount();
+                Double favoritesCount = video.getFavoritesCount() * 1.5;
+                long t = toEpochMilli(now) - toEpochMilli(video.getGmtCreated());
+
+                final double hot = hot(shareCount + historyCount + startCount + favoritesCount,
+                        TimeUnit.MILLISECONDS.toDays(t));
+                // 大于X热度说明是热门视频
+                if (hot >= hotLimit) {
+                    hotVideos.add(video.getId());
+                }
+            }
+            System.out.println("推送热门视频");
+            if (!ObjectUtils.isEmpty(hotVideos)) {
+                String key = RedisConstant.HOT_VIDEO + dayOfMonth;
+                redisCacheUtil.getRedisTemplate().opsForSet().add(key, hotVideos.toArray());
+                redisCacheUtil.getRedisTemplate().expire(key, 3, TimeUnit.DAYS);
+                LOG.info("推送热门视频 key: {}" , key);
+            }
+            startId = videos.get(videos.size() - 1).getId();
+            videos = videoMapper.selectNDaysAgeVideo(startId, 3, limit);
+        }
+    }
+
+
+    private double hot(double weight, long days) {
+        return weight * Math.exp(-a * days);
+    }
+
+    private double weightRandom() {
+        int i = (int) ((Math.random() * 9 + 1) * 100000);
+        return i / 1000000.0;
+    }
+
+
 }

@@ -37,7 +37,9 @@ public class TiktokApplication implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         System.out.println("进行测试");
-        videoScheduledService.updateVideoStar();
+//        videoScheduledService.updateVideoStar();
+//        videoScheduledService.hotRankTopN();
+        videoScheduledService.hotVideo();;
     }
 
 }

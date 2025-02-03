@@ -3,9 +3,12 @@ package com.lartimes.tiktok.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lartimes.tiktok.model.user.User;
+import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.RegisterVO;
 import com.lartimes.tiktok.model.vo.UserVO;
+
+import java.util.Collection;
 
 /**
  * <p>
@@ -71,4 +74,11 @@ public interface UserService extends IService<User> {
      * @param searchName
      */
     void addSearchHistory(Long userId, String searchName);
+
+    /**
+     * 获取用户订阅的分类
+     * @param userId
+     * @return
+     */
+    Collection<Type> listSubscribeType(Long userId);
 }

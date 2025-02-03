@@ -14,4 +14,16 @@ public interface VideoScheduledService {
      */
     void updateVideoStar();
 
+
+    /**
+     * 热度排行榜schedule
+     */
+    void hotRankTopN();
+
+    /**
+     * 热门视频
+     */
+    void hotVideo();
+
+
 }

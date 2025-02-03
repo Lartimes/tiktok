@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author wüsch
@@ -80,11 +82,11 @@ public class IndexServiceImpl implements IndexService {
     public List<Type> getAllTypes(HttpServletRequest request) {
         List<Type> types = typeService.getBaseMapper().selectList(new LambdaQueryWrapper<Type>().select(Type::getIcon, Type::getId, Type::getName)
                 .orderByDesc(Type::getSort));
-//        final Set<Long> set = userService.listSubscribeType(jwtUtils.getUserId(request))
-//                .stream().map(Type::getId).collect(Collectors.toSet());
-//        for (Type type : types) {
-//            type.setOpen(set.contains(type.getId()));
-//        }
+        final Set<Long> set = userService.listSubscribeType(jwtUtils.getUserId(request))
+                .stream().map(Type::getId).collect(Collectors.toSet());
+        for (Type type : types) {
+            type.setUsed(set.contains(type.getId()));
+        }
         return types;
     }
 

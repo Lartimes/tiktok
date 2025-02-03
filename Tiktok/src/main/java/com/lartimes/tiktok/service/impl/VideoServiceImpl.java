@@ -22,16 +22,14 @@ import com.lartimes.tiktok.model.video.VideoShare;
 import com.lartimes.tiktok.model.video.VideoStar;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.UserVO;
-import com.lartimes.tiktok.service.FileService;
-import com.lartimes.tiktok.service.TypeService;
-import com.lartimes.tiktok.service.UserService;
-import com.lartimes.tiktok.service.VideoService;
+import com.lartimes.tiktok.service.*;
 import com.lartimes.tiktok.service.audit.VideoPublishAuditService;
 import com.lartimes.tiktok.util.FileUtil;
 import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
@@ -57,6 +55,7 @@ import java.util.stream.Collectors;
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements VideoService {
     private static final Logger LOG = LogManager.getLogger(VideoServiceImpl.class);
     private static final int YV_LENGTH = "YVe564449ea12741ba8e1c6fa1".length();
+    private static final HashMap<String, Integer> map = new HashMap<>();
     private final TypeService typeServiceImpl;
     private final FileService fileService;
     private final VideoPublishAuditService videoPublishAuditService;
@@ -91,7 +90,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
      *
      * @param videos
      */
-    private void setUserVoAndUrl(List<Video> videos) {
+    private void setUserVoAndUrl(Collection<Video> videos) {
         if (videos.isEmpty()) {
             return;
         }
@@ -261,6 +260,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 //        异步改变用户模型
         // 获取标签
 //        TODO 更新用户模型
+//        成功或者失败 ？
         new Thread(() -> {
             List<String> labels = video.buildLabel();
 //            UserModel userModel = UserModel.buildUserModel(labels, videoId, 1.0);
@@ -308,9 +308,50 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         IPage<Video> result = page(page, queryWrapper);
         List<Video> videoList = result.getRecords();
         setUserVoAndUrl(videoList);
-        userService.addSearchHistory(userId ,searchName );
+        userService.addSearchHistory(userId, searchName);
         return result;
     }
+
+    @Override
+    public Collection<Video> listHotVideo() {
+        Calendar calendar = Calendar.getInstance();
+        int today = calendar.get(Calendar.DATE);
+        map.put(RedisConstant.HOT_VIDEO + today, 10);
+        map.put(RedisConstant.HOT_VIDEO + (today - 1), 10);
+        map.put(RedisConstant.HOT_VIDEO + (today - 2), 10);
+
+        var hotVideoIds = redisCacheUtil.pipeline(connection -> {
+            map.forEach((k, v) -> connection.setCommands().sRandMember(k.getBytes(), v));
+            return null;
+        });
+//        15个视频
+        ArrayList<Long> videoIds = new ArrayList<>();
+        for (Object videoId : hotVideoIds) {
+            if (!ObjectUtils.isEmpty(videoId)) {
+                videoIds.add((Long) videoId);
+            }
+        }
+        if (videoIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final Collection<Video> videos = listByIds(videoIds);
+        setUserVoAndUrl(videos);
+        return videos;
+    }
+
+    @Override
+    public Collection<Video> pushSimilarVideo(Video video) {
+        if (ObjectUtils.isEmpty(video) || ObjectUtils.isEmpty(video.getLabelNames()))
+            return Collections.emptyList();
+        List<String> arr = video.buildLabel();
+        Collection<Long> idByLabels = interestPushService.listVideoIdByLabels(arr);
+        idByLabels.remove(video.getId());
+        List<Video> videos = listByIds(idByLabels);
+        setUserVoAndUrl(videos);
+        return videos;
+    }
+    @Autowired
+    private InterestPushService interestPushService;
 
     //    行锁 最简单，效率快
     private void updateShare(Video video, long signal) {

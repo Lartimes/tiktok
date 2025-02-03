@@ -82,4 +82,19 @@ public interface VideoService extends IService<Video> {
      * @return
      */
     IPage<Video> searchVideo(String searchName, PageVo pageVo, Long userId);
+
+
+    /**
+     * 推送热门视频
+     * @return
+     */
+    Collection<Video>  listHotVideo();
+
+
+    /**
+     * 根据标签推送相似视频
+     * @param video
+     * @return
+     */
+    Collection<Video> pushSimilarVideo(Video video);
 }

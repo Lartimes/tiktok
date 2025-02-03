@@ -1,5 +1,6 @@
 package com.lartimes.tiktok.controller;
 
+import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.video.VideoShare;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.service.IndexService;
@@ -62,7 +63,6 @@ public class IndexController {
         return R.ok();
     }
 
-    // /index/video/user?userId=19&page=1&limit=10
     @GetMapping("/video/user")
     public R getUserVideo(@RequestParam(required = false) Long userId,
                           PageVo pageVo, HttpServletRequest request) {
@@ -117,6 +117,23 @@ public class IndexController {
     @RequestMapping("/types")
     public R getVideoTypes(HttpServletRequest request) {
         return R.ok().data(indexService.getAllTypes(request));
+    }
+
+
+    /**
+     * 推送热门视频
+     *
+     * @return
+     */
+    @GetMapping("/video/hot")
+    public R listHotVideo() {
+        return R.ok().data(videoService.listHotVideo());
+    }
+
+
+    @GetMapping("/video/similar")
+    public R pushSimilarVideo(Video video) {
+        return R.ok().data(videoService.pushSimilarVideo(video));
     }
 
 

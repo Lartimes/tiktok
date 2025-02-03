@@ -40,6 +40,8 @@ public class Type implements Serializable {
 
     @TableField("is_deleted")
     private Boolean deleted;
+    @TableField(exist = false)
+    private Boolean used;
 
     private LocalDateTime gmtCreated;
 
