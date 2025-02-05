@@ -40,10 +40,10 @@ public class HotVideo implements Serializable {
 
     public void hotFormat(){
         BigDecimal bigDecimal = new BigDecimal(this.hot);
-        BigDecimal decimal = bigDecimal.divide(new BigDecimal("10000"));
-        DecimalFormat formater = new DecimalFormat("0.0");
+//        BigDecimal decimal = bigDecimal.divide(new BigDecimal("10000"));
+        DecimalFormat formater = new DecimalFormat("0.00");
         formater.setRoundingMode(RoundingMode.HALF_UP);    // 5000008.89
-        String formatNum = formater.format(decimal);
+        String formatNum = formater.format(bigDecimal);
         this.setHotFormat( formatNum+"万");
     }
 

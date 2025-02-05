@@ -14,12 +14,10 @@ import com.lartimes.tiktok.model.user.Follow;
 import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.user.UserSubscribe;
 import com.lartimes.tiktok.model.video.Type;
-import com.lartimes.tiktok.model.vo.PageVo;
-import com.lartimes.tiktok.model.vo.RegisterVO;
-import com.lartimes.tiktok.model.vo.UserVO;
+import com.lartimes.tiktok.model.vo.*;
 import com.lartimes.tiktok.service.FavoritesService;
 import com.lartimes.tiktok.service.FollowService;
-import com.lartimes.tiktok.service.UserRoleService;
+import com.lartimes.tiktok.service.InterestPushService;
 import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.util.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -54,8 +52,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private FavoritesService favoritesService;
     @Autowired
     private FollowService followService;
+
     @Autowired
-    private UserRoleService userRoleService;
+    private InterestPushService interestPushService;
+
     @Autowired
     private RedisCacheUtil redisCacheUtil;
     @Autowired
@@ -235,12 +235,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Collection<Type> listSubscribeType(Long userId) {
         Set<Long> types = userSubscribeMapper.selectList(new LambdaQueryWrapper<UserSubscribe>()
                 .eq(UserSubscribe::getUserId, userId)).stream().map(UserSubscribe::getTypeId).collect(Collectors.toSet());
+        if (types.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<Type> result = typeMapper.selectList(new LambdaQueryWrapper<Type>()
                 .in(Type::getId, types));
-        if (result.isEmpty()){
+        if (result.isEmpty()) {
             return Collections.emptyList();
         }
         return result;
+    }
+
+    @Override
+    public void initModel(ModelVO modelVO) {
+        interestPushService.initUserModel(modelVO.getUserId(), modelVO.getLabels());
+    }
+
+    @Override
+    public void updateUserModel(UserModel userModel) {
+        interestPushService.updateUserModel(userModel);
     }
 
 

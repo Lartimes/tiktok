@@ -1,9 +1,7 @@
 package com.lartimes.tiktok.controller;
 
 import com.lartimes.tiktok.holder.UserHolder;
-import com.lartimes.tiktok.model.vo.FavoritesVo;
-import com.lartimes.tiktok.model.vo.PageVo;
-import com.lartimes.tiktok.model.vo.UserVO;
+import com.lartimes.tiktok.model.vo.*;
 import com.lartimes.tiktok.service.FavoritesService;
 import com.lartimes.tiktok.service.QiNiuFileService;
 import com.lartimes.tiktok.service.TypeService;
@@ -15,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -228,6 +227,26 @@ public class CustomerController {
         }
         return R.error().message("请登录后重试");
     }
+
+    /**
+     * 用户停留时长修改模型
+     *
+     * @param model
+     * @return
+     */
+    @PostMapping("/updateUserModel")
+    public R updateUserModel(@RequestBody Model model) {
+        final Double score = model.getScore();
+        if (score == -0.5 || score == 1.0) {
+            final UserModel userModel = new UserModel();
+            userModel.setUserId(UserHolder.get());
+            userModel.setModels(Collections.singletonList(model));
+            userService.updateUserModel(userModel);
+        }
+        return R.ok();
+    }
+
+
 
 
 }

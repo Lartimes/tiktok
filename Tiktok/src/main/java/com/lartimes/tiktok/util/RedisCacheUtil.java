@@ -3,7 +3,6 @@ package com.lartimes.tiktok.util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.*;
-import org.springframework.data.web.config.SortHandlerMethodArgumentResolverCustomizer;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -22,18 +21,34 @@ public class RedisCacheUtil {
 
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final SortHandlerMethodArgumentResolverCustomizer sortCustomizer;
 
-    public RedisCacheUtil(RedisTemplate<String, Object> redisTemplate, SortHandlerMethodArgumentResolverCustomizer sortCustomizer) {
+    public RedisCacheUtil(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.sortCustomizer = sortCustomizer;
+    }
+
+    /**
+     * HashSet
+     *
+     * @param key 键
+     * @param map 对应多个键值
+     * @return true 成功 false 失败
+     */
+    public boolean hmset(String key, Map<Object, Object> map) {
+        try {
+            redisTemplate.opsForHash().putAll(key, map);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public RedisTemplate<String, Object> getRedisTemplate() {
         return redisTemplate;
     }
+
     // 接受一个管道
-    public List pipeline(RedisCallback redisCallback){
+    public List pipeline(RedisCallback redisCallback) {
         return redisTemplate.executePipelined(redisCallback);
     }
 
@@ -248,15 +263,20 @@ public class RedisCacheUtil {
 
     /**
      * 根据key 获取list
+     *
      * @param arr
      * @return
      */
     public Collection<Object> sRandom(ArrayList<String> arr) {
-       return redisTemplate.executePipelined((RedisCallback<?>) connection -> {
+        return redisTemplate.executePipelined((RedisCallback<?>) connection -> {
             for (String s : arr) {
                 connection.zSetCommands().zRandMember(s.getBytes());
             }
             return null;
         });
+    }
+
+    public Map<Object, Object> hmget(String key) {
+        return redisTemplate.opsForHash().entries(key);
     }
 }

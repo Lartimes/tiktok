@@ -4,9 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.video.Type;
-import com.lartimes.tiktok.model.vo.PageVo;
-import com.lartimes.tiktok.model.vo.RegisterVO;
-import com.lartimes.tiktok.model.vo.UserVO;
+import com.lartimes.tiktok.model.vo.*;
 
 import java.util.Collection;
 
@@ -81,4 +79,16 @@ public interface UserService extends IService<User> {
      * @return
      */
     Collection<Type> listSubscribeType(Long userId);
+
+    /**
+     * 初始化用户模型
+     * @param modelVO
+     */
+    void initModel(ModelVO modelVO);
+
+    /**
+     * 更新用户模型
+     * @param userModel
+     */
+    void updateUserModel(UserModel userModel);
 }

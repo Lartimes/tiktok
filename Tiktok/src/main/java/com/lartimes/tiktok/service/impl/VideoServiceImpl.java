@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lartimes.tiktok.config.LocalCache;
 import com.lartimes.tiktok.config.QiNiuConfig;
 import com.lartimes.tiktok.constant.AuditStatus;
@@ -20,6 +22,7 @@ import com.lartimes.tiktok.model.video.File;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.video.VideoShare;
 import com.lartimes.tiktok.model.video.VideoStar;
+import com.lartimes.tiktok.model.vo.HotVideo;
 import com.lartimes.tiktok.model.vo.PageVo;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.*;
@@ -30,8 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +69,15 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     private final VideoShareMapper videoShareMapper;
     private final VideoStarMapper videoStarMapper;
     private final RedisCacheUtil redisCacheUtil;
+    private final Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+    @Autowired
+    private InterestPushService interestPushService;
+    @Autowired
+    private WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter webMvcAutoConfigurationAdapter;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private FeedService feedService;
 
     public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserService userService, VideoShareMapper videoShareMapper, VideoStarMapper videoStarMapper, RedisCacheUtil redisCacheUtil) {
         this.typeServiceImpl = typeServiceImpl;
@@ -248,7 +263,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("like_video.lua")));
         redisScript.setResultType(Long.class);
-        Long result = redisCacheUtil.getRedisTemplate().execute(redisScript, Collections.emptyList(), videoId, userId);
+        Long result = redisCacheUtil.getRedisTemplate().execute(redisScript, Collections.emptyList(),
+                videoId, userId);
         if (result == null || result == -1) {
             LOG.error("点赞失败，like_video.lua");
             throw new BaseException("点赞失败，请重试");
@@ -325,10 +341,11 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             return null;
         });
 //        15个视频
-        ArrayList<Long> videoIds = new ArrayList<>();
+        HashSet<Long> videoIds = new HashSet<>();
         for (Object videoId : hotVideoIds) {
-            if (!ObjectUtils.isEmpty(videoId)) {
-                videoIds.add((Long) videoId);
+            List<Long> arr = (List<Long>) videoId;
+            if (!ObjectUtils.isEmpty(arr)) {
+                videoIds.addAll(arr);
             }
         }
         if (videoIds.isEmpty()) {
@@ -346,12 +363,65 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         List<String> arr = video.buildLabel();
         Collection<Long> idByLabels = interestPushService.listVideoIdByLabels(arr);
         idByLabels.remove(video.getId());
-        List<Video> videos = listByIds(idByLabels);
-        setUserVoAndUrl(videos);
-        return videos;
+        if (!idByLabels.isEmpty()) {
+            List<Video> videos = listByIds(idByLabels);
+            setUserVoAndUrl(videos);
+            return videos;
+        }
+//        TODO 随便推送
+        return Collections.emptyList();
     }
-    @Autowired
-    private InterestPushService interestPushService;
+
+    @Override
+    public Collection<Video> followFeed(Long userId, Long lastTime) {
+        Set<Long> set = Objects.requireNonNull(redisCacheUtil.getRedisTemplate().opsForZSet().reverseRangeByScore(
+                RedisConstant.IN_FOLLOW + userId, 0,
+                lastTime == null ? System.currentTimeMillis() : lastTime,
+                lastTime == null ? 0 : 1, 5)).stream().map(a -> Long.parseLong(a.toString())).collect(Collectors.toSet());
+        if (set.isEmpty()) return Collections.emptyList();
+        List<Video> result = list(new LambdaQueryWrapper<Video>().in(Video::getId, set).orderByDesc(Video::getGmtCreated));
+        setUserVoAndUrl(result);
+        return result;
+    }
+
+    @Override
+    public void initFollowFeed(Long userId) {
+        Page<User> userPage = userService.getFollowersByPage(null, userId);
+        List<Long> list = userPage.getRecords().stream().map(User::getId).toList();
+        feedService.initFollowFeed(userId, list);
+    }
+
+    @Override
+    public Collection<HotVideo> hotRank() {
+        final Set<ZSetOperations.TypedTuple<Object>> typedTuples = redisCacheUtil.getRedisTemplate().opsForZSet().
+                reverseRangeWithScores(RedisConstant.HOT_RANK, 0, -1);
+
+        if (typedTuples == null || typedTuples.isEmpty()) {
+            return Collections.emptyList();
+        }
+        ArrayList<HotVideo> result = new ArrayList<HotVideo>(typedTuples.size());
+        for (ZSetOperations.TypedTuple<Object> typedTuple : typedTuples) {
+            try {
+                double score = typedTuple.getScore().doubleValue();
+                score = Math.round(score * 100.0) / 100.0;
+                String value = Objects.requireNonNull(typedTuple.getValue()).toString();
+                HotVideo hotVideo = objectMapper.readValue(value, HotVideo.class);
+                hotVideo.setHot(score);
+                hotVideo.hotFormat();
+                result.add(hotVideo);
+            } catch (JsonProcessingException e) {
+                LOG.error("hot rank错误");
+                throw new RuntimeException(e);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Collection<Video> pushVideos(Long userId) {
+//
+        return null;
+    }
 
     //    行锁 最简单，效率快
     private void updateShare(Video video, long signal) {

@@ -37,4 +37,7 @@ public interface TypeService extends IService<Type> {
      * @return
      */
     List<Type> getNoSubscribes(Long userId);
+
+
+    List<String> random10Labels();
 }

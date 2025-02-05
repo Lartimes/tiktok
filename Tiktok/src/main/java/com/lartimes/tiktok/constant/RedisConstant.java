@@ -37,7 +37,8 @@ public interface RedisConstant {
 
     Long EMAIL_CODE_TIME = 300L;
 
-    Long USER_SEARCH_HISTORY_TIME = 432000L;
+    Long USER_SEARCH_HISTORY_TIME = 432000L; //S
+    Long USER_MODEL_TIME = 432000L;
 
     // 系统分类库，用于查询分类下的视频随机获取
     String SYSTEM_TYPE_STOCK = "system:type:stock:";

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.video.VideoShare;
+import com.lartimes.tiktok.model.vo.HotVideo;
 import com.lartimes.tiktok.model.vo.PageVo;
 
 import java.util.Collection;
@@ -97,4 +98,34 @@ public interface VideoService extends IService<Video> {
      * @return
      */
     Collection<Video> pushSimilarVideo(Video video);
+
+
+    /**
+     * 推送关注人的视频
+     * @param userId
+     * @param lastTime
+     * @return
+     */
+    Collection<Video> followFeed(Long userId, Long lastTime);
+
+    /**
+     * 初始化收件箱
+     * @param userId
+     */
+    void initFollowFeed(Long userId);
+
+
+    /**
+     * hotrank 热度排行榜
+     * @return
+     */
+    Collection<HotVideo> hotRank();
+
+
+    /**
+     *
+     * @param userId
+     * @return
+     */
+    Collection<Video> pushVideos(Long userId);
 }

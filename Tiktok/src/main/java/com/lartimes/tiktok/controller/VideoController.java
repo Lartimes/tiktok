@@ -120,9 +120,27 @@ public class VideoController {
     }
 
 
+    /**
+     * 推送关注人视频
+     * @param lastTime
+     * @return
+     */
     @GetMapping("/follow/feed")
-    private R pushFollowVideo() {
-
+    private R pushFollowVideo(@RequestParam(required = false) Long lastTime) {
+        Long userId = UserHolder.get();
+        return R.ok().data(videoService.followFeed(userId , lastTime));
     }
+    /**
+     * 初始化收件箱
+     * @return
+     */
+    @PostMapping("/init/follow/feed")
+    public R initFollowFeed(){
+        final Long userId = UserHolder.get();
+        videoService.initFollowFeed(userId);
+        return R.ok();
+    }
+
+
 }
 

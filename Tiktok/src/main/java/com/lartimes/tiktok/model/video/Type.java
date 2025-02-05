@@ -9,6 +9,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * <p>
@@ -46,6 +48,9 @@ public class Type implements Serializable {
     private LocalDateTime gmtCreated;
 
     private LocalDateTime gmtUpdated;
+    public List<String> buildLabel(){
+        return Arrays.asList(labelNames.split(","));
+    }
 
 
 }

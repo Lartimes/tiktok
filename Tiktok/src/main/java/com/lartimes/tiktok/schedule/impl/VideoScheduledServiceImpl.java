@@ -215,7 +215,7 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
                 Double hot = hotVideo.getHot();
                 hotVideo.setHot(null);
                 try {
-                    connection.zAdd(rankBytes, hot, Objects.requireNonNull(jackson2JsonRedisSerializer.serialize(objectMapper.writeValueAsBytes(hotVideo))));
+                    connection.zAdd(rankBytes, hot, Objects.requireNonNull(jackson2JsonRedisSerializer.serialize(objectMapper.writeValueAsString(hotVideo))));
                 } catch (JsonProcessingException e) {
                     LOG.error(e.getMessage());
                 }
@@ -257,7 +257,7 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
                 String key = RedisConstant.HOT_VIDEO + dayOfMonth;
                 redisCacheUtil.getRedisTemplate().opsForSet().add(key, hotVideos.toArray());
                 redisCacheUtil.getRedisTemplate().expire(key, 3, TimeUnit.DAYS);
-                LOG.info("推送热门视频 key: {}" , key);
+                LOG.info("推送热门视频 key: {}", key);
             }
             startId = videos.get(videos.size() - 1).getId();
             videos = videoMapper.selectNDaysAgeVideo(startId, 3, limit);

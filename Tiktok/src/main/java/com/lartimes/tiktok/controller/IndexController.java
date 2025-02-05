@@ -71,6 +71,16 @@ public class IndexController {
     }
 
     /**
+     * 获取热度排行榜
+     *
+     * @return
+     */
+    @GetMapping("/video/hot/rank")
+    public R listHotRank() {
+        return R.ok().data(videoService.hotRank());
+    }
+
+    /**
      * 获取搜索记录
      *
      * @param request
@@ -134,6 +144,18 @@ public class IndexController {
     @GetMapping("/video/similar")
     public R pushSimilarVideo(Video video) {
         return R.ok().data(videoService.pushSimilarVideo(video));
+    }
+
+
+    /**
+     * 兴趣推送视频
+     *
+     * @return
+     */
+    @GetMapping("/pushVideos")
+    public R pushVideos(HttpServletRequest request) {
+        final Long userId = jWTUtils.getUserId(request);
+        return R.ok().data(videoService.pushVideos(userId));
     }
 
 
