@@ -8,6 +8,7 @@ import com.lartimes.tiktok.model.vo.HotVideo;
 import com.lartimes.tiktok.model.vo.PageVo;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -128,4 +129,44 @@ public interface VideoService extends IService<Video> {
      * @return
      */
     Collection<Video> pushVideos(Long userId);
+
+    /**
+     * 根据视频分类获取视频
+     * @param typeId
+     * @return
+     */
+    Collection<Video> getVideoByTypeId(Long typeId);
+
+    /**
+     * 添加视频浏览记录
+     * @param videoID
+     * @param userId
+     */
+    void historyVideo(Long videoID, Long userId);
+
+
+    /**
+     *获取浏览记录 ， 日期 ， ---- video
+     * @param pageVo
+     * @return
+     */
+    LinkedHashMap<String, List<Video>> getHistory(PageVo pageVo);
+
+    /**
+     * 获取用户个人视频ID
+     * @param followUserId
+     * @return
+     */
+    Collection<Long> listVideoIdByUserId(Long followUserId);
+
+
+    Collection<Video> getFavoritesVideo(Long favoritesId, Long userId);
+
+    /**
+     *
+     * @param fId
+     * @param vId
+     * @return
+     */
+    boolean addFavorites(String fId, String vId);
 }

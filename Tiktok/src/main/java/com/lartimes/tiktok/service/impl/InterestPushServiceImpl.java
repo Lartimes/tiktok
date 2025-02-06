@@ -3,6 +3,7 @@ package com.lartimes.tiktok.service.impl;
 import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.holder.UserHolder;
 import com.lartimes.tiktok.model.user.User;
+import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.vo.Model;
 import com.lartimes.tiktok.model.vo.UserModel;
 import com.lartimes.tiktok.service.InterestPushService;
@@ -29,13 +30,12 @@ import java.util.stream.Collectors;
 public class InterestPushServiceImpl implements InterestPushService {
     private static final Logger LOG = LogManager.getLogger(InterestPushServiceImpl.class);
     private final RedisCacheUtil redisCacheUtil;
+    @Autowired
+    private TypeService typeService;
 
     public InterestPushServiceImpl(RedisCacheUtil redisCacheUtil) {
         this.redisCacheUtil = redisCacheUtil;
     }
-
-    @Autowired
-    private TypeService typeService;
 
     @Override
     public Collection<Long> listVideoIdByLabels(List<String> labelNames) {
@@ -147,11 +147,61 @@ public class InterestPushServiceImpl implements InterestPushService {
             labelNames.add(RedisConstant.SYSTEM_STOCK + random10Labels.get(random.nextInt(size)));
         }
         Collection<Object> list = redisCacheUtil.sRandom(labelNames);
-        if (!ObjectUtils.isEmpty(list)){
-            videoIds = list.stream().filter(id ->!ObjectUtils.isEmpty(id)).
+        if (!ObjectUtils.isEmpty(list)) {
+            videoIds = list.stream().filter(id -> !ObjectUtils.isEmpty(id)).
                     map(id -> Long.valueOf(id.toString())).collect(Collectors.toSet());
         }
         return videoIds;
+    }
+
+    @Override
+    public Collection<Long> listVideoIdByTypeId(Long typeId) {
+        // 随机推送10个
+        final List<Object> list = redisCacheUtil.getRedisTemplate().opsForSet().randomMembers(RedisConstant.SYSTEM_TYPE_STOCK + typeId, 12);
+        // 可能会有null
+        final HashSet<Long> result = new HashSet<>();
+        for (Object aLong : Objects.requireNonNull(list)) {
+            if (aLong != null) {
+                result.add(Long.parseLong(aLong.toString()));
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void deleteSystemStockIn(Video destVideo) {
+        final List<String> labels = destVideo.buildLabel();
+        final Long videoId = destVideo.getId();
+        redisCacheUtil.getRedisTemplate().executePipelined((RedisCallback<Object>) connection -> {
+            for (String label : labels) {
+                connection.sRem((RedisConstant.SYSTEM_STOCK + label).getBytes(), String.valueOf(videoId).getBytes());
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public void deleteSystemTypeStockIn(Video destVideo) {
+        final Long typeId = destVideo.getTypeId();
+        redisCacheUtil.removeZSetValue(RedisConstant.SYSTEM_TYPE_STOCK + typeId, destVideo.getId());
+    }
+
+    @Override
+    public void pushSystemTypeStockIn(Video video) {
+        Long typeId = video.getTypeId();
+        redisCacheUtil.addZSetWithScores(RedisConstant.SYSTEM_TYPE_STOCK + typeId, video.getId(), null);
+    }
+
+    @Override
+    public void pushSystemStockIn(Video video) {
+        List<String> labels = video.buildLabel();
+        Long id = video.getId();
+        redisCacheUtil.getRedisTemplate().executePipelined((RedisCallback<?>) connection -> {
+            for (String label : labels) {
+                connection.setCommands().sAdd((RedisConstant.SYSTEM_STOCK + label).getBytes(), id.toString().getBytes());
+            }
+            return null;
+        });
     }
 
     private Long randomVideoId(Boolean sex) {

@@ -6,12 +6,11 @@ import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.service.IndexService;
 import com.lartimes.tiktok.service.TypeService;
-import com.lartimes.tiktok.service.UserService;
 import com.lartimes.tiktok.service.VideoService;
+import com.lartimes.tiktok.service.user.UserService;
 import com.lartimes.tiktok.util.JWTUtils;
 import com.lartimes.tiktok.util.RedisCacheUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +29,6 @@ import java.util.stream.Collectors;
  * @since 2024/12/8 10:14
  */
 @Service
-@Slf4j
 public class IndexServiceImpl implements IndexService {
 
     private static final Logger LOG = LogManager.getLogger(IndexServiceImpl.class);

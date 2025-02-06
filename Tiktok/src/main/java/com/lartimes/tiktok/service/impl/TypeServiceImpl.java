@@ -9,9 +9,8 @@ import com.lartimes.tiktok.model.user.UserSubscribe;
 import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.vo.ModelVO;
 import com.lartimes.tiktok.service.TypeService;
-import com.lartimes.tiktok.service.UserService;
-import com.lartimes.tiktok.service.UserSubscribeService;
-import lombok.extern.slf4j.Slf4j;
+import com.lartimes.tiktok.service.user.UserService;
+import com.lartimes.tiktok.service.user.UserSubscribeService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +29,6 @@ import java.util.List;
  *
  * @author lartimes
  */
-@Slf4j
 @Service
 public class TypeServiceImpl extends ServiceImpl<TypeMapper, Type> implements TypeService {
     private static final Logger LOG = LogManager.getLogger(TypeServiceImpl.class);

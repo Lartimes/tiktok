@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
  *
  * @author lartimes
  */
-@Slf4j
 @Service
 public class SysSettingServiceImpl extends ServiceImpl<SysSettingMapper, SysSetting> implements SysSettingService {
 

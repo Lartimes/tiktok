@@ -47,6 +47,13 @@ public class IndexController {
         return R.ok().data(videoService.searchVideo(searchName, pageVo, jWTUtils.getUserId(request)));
     }
 
+    /**
+     * 分享视频
+     *
+     * @param videoId
+     * @param request
+     * @return
+     */
     @PostMapping("/index/share/{videoId}")
     public R shareVideo(@PathVariable("videoId") Long videoId, HttpServletRequest request) {
         String ipAddress = request.getHeader("X-Forwarded-For");
@@ -63,6 +70,14 @@ public class IndexController {
         return R.ok();
     }
 
+    /**
+     * 获取用户的个人视频
+     *
+     * @param userId
+     * @param pageVo
+     * @param request
+     * @return
+     */
     @GetMapping("/video/user")
     public R getUserVideo(@RequestParam(required = false) Long userId,
                           PageVo pageVo, HttpServletRequest request) {
@@ -103,6 +118,13 @@ public class IndexController {
                 "删除成功" : "失败，请重试");
     }
 
+    /**
+     * 获取视频信息
+     *
+     * @param videoId
+     * @param request
+     * @return
+     */
     @GetMapping("/index/video/{videoId}")
     public R getVideoInfo(@PathVariable Long videoId, HttpServletRequest request) {
         return R.ok().data(videoService.getVideosByIds(Collections.singletonList(videoId)).stream().findFirst().get());
@@ -141,6 +163,12 @@ public class IndexController {
     }
 
 
+    /**
+     * 推送相关视频
+     *
+     * @param video
+     * @return
+     */
     @GetMapping("/video/similar")
     public R pushSimilarVideo(Video video) {
         return R.ok().data(videoService.pushSimilarVideo(video));
@@ -156,6 +184,17 @@ public class IndexController {
     public R pushVideos(HttpServletRequest request) {
         final Long userId = jWTUtils.getUserId(request);
         return R.ok().data(videoService.pushVideos(userId));
+    }
+
+    /**
+     * 根据视频分类获取
+     * @param typeId
+     * @return
+     */
+    @GetMapping("/video/type/{typeId}")
+    public R getVideoByTypeId(@PathVariable Long typeId){
+
+        return R.ok().data(videoService.getVideoByTypeId(typeId));
     }
 
 

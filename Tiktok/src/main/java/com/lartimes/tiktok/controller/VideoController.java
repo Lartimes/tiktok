@@ -1,9 +1,9 @@
 package com.lartimes.tiktok.controller;
 
+import com.lartimes.tiktok.config.QiNiuConfig;
 import com.lartimes.tiktok.holder.UserHolder;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.vo.PageVo;
-import com.lartimes.tiktok.service.FavoritesVideoService;
 import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.R;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,11 +29,14 @@ public class VideoController {
     private VideoService videoService;
 
     @Autowired
-    private FavoritesVideoService favoritesVideoService;
+    private QiNiuConfig qiNiuConfig;
 
-
-
-
+    /**
+     * 点赞视频
+     *
+     * @param videoId
+     * @return
+     */
     @PostMapping("/star/{videoId}")
     public R likeVideo(@PathVariable Long videoId) {
         boolean liked = videoService.likeVideo(videoId, UserHolder.get());
@@ -54,7 +57,6 @@ public class VideoController {
 
     }
 
-
     /**
      * 发布/修改视频
      *
@@ -70,7 +72,6 @@ public class VideoController {
         return R.ok().message("请等待审核");
     }
 
-
     /**
      * 稿件管理
      *
@@ -83,7 +84,6 @@ public class VideoController {
         return R.ok().data(videoService.getAllVideoByUser(pageVo, userId));
     }
 
-
     /**
      * 获取收藏夹下的所有视频
      *
@@ -92,7 +92,7 @@ public class VideoController {
      */
     @RequestMapping("/favorites/{favoritesId}")
     public R getFavoriteVideos(@PathVariable String favoritesId) {
-        return R.ok().data(favoritesVideoService.getFavoritesVideo(Long.parseLong(favoritesId), UserHolder.get()));
+        return R.ok().data(videoService.getFavoritesVideo(Long.parseLong(favoritesId), UserHolder.get()));
     }
 
     /**
@@ -116,29 +116,62 @@ public class VideoController {
     @PostMapping("/favorites/{fId}/{vId}")
     public R addFavoriteVideo(@PathVariable String fId, @PathVariable String vId) {
 
-        return R.ok().message(favoritesVideoService.addFavorites(fId, vId) ? "收藏成功" : "收藏失败");
+        return R.ok().message(videoService.addFavorites(fId, vId) ? "收藏成功" : "收藏失败");
     }
 
-
     /**
-     * 推送关注人视频
+     * 推送关注人视频 拉模式
+     *
      * @param lastTime
      * @return
      */
     @GetMapping("/follow/feed")
     private R pushFollowVideo(@RequestParam(required = false) Long lastTime) {
         Long userId = UserHolder.get();
-        return R.ok().data(videoService.followFeed(userId , lastTime));
+        return R.ok().data(videoService.followFeed(userId, lastTime));
     }
+
     /**
      * 初始化收件箱
+     *
      * @return
      */
     @PostMapping("/init/follow/feed")
-    public R initFollowFeed(){
+    public R initFollowFeed() {
         final Long userId = UserHolder.get();
         videoService.initFollowFeed(userId);
         return R.ok();
+    }
+
+    /**
+     * 添加浏览记录
+     *
+     * @return
+     */
+    @PostMapping("/history/{id}")
+    public R addHistory(@PathVariable Long id) throws Exception {
+        videoService.historyVideo(id, UserHolder.get());
+        return R.ok();
+    }
+
+    /**
+     * 获取用户的浏览记录
+     *
+     * @return
+     */
+    @GetMapping("/history")
+    public R getHistory(PageVo pageVo) {
+        return R.ok().data(videoService.getHistory(pageVo));
+    }
+
+    /**
+     * 获取文件上传token
+     *
+     * @return
+     */
+    @GetMapping("/token")
+    public R getToken() {
+        return R.ok().data(qiNiuConfig.videoGetToken());
     }
 
 

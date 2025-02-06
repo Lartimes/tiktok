@@ -13,23 +13,26 @@ import com.lartimes.tiktok.constant.AuditStatus;
 import com.lartimes.tiktok.constant.RedisConstant;
 import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.holder.UserHolder;
+import com.lartimes.tiktok.mapper.FavoritesVideoMapper;
 import com.lartimes.tiktok.mapper.VideoMapper;
 import com.lartimes.tiktok.mapper.VideoShareMapper;
 import com.lartimes.tiktok.mapper.VideoStarMapper;
 import com.lartimes.tiktok.model.task.VideoTask;
+import com.lartimes.tiktok.model.user.FavoritesVideo;
 import com.lartimes.tiktok.model.user.User;
 import com.lartimes.tiktok.model.video.File;
+import com.lartimes.tiktok.model.video.Type;
 import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.video.VideoShare;
-import com.lartimes.tiktok.model.video.VideoStar;
 import com.lartimes.tiktok.model.vo.HotVideo;
 import com.lartimes.tiktok.model.vo.PageVo;
+import com.lartimes.tiktok.model.vo.UserModel;
 import com.lartimes.tiktok.model.vo.UserVO;
 import com.lartimes.tiktok.service.*;
 import com.lartimes.tiktok.service.audit.VideoPublishAuditService;
+import com.lartimes.tiktok.service.user.UserService;
 import com.lartimes.tiktok.util.FileUtil;
 import com.lartimes.tiktok.util.RedisCacheUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -56,7 +60,6 @@ import java.util.stream.Collectors;
  *
  * @author lartimes
  */
-@Slf4j
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements VideoService {
     private static final Logger LOG = LogManager.getLogger(VideoServiceImpl.class);
@@ -67,19 +70,16 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     private final VideoPublishAuditService videoPublishAuditService;
     private final UserService userService;
     private final VideoShareMapper videoShareMapper;
-    private final VideoStarMapper videoStarMapper;
     private final RedisCacheUtil redisCacheUtil;
     private final Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+    private final InterestPushService interestPushService;
+    private final ObjectMapper objectMapper;
+    private final FeedService feedService;
+    private final VideoStarMapper videoStarMapper;
     @Autowired
-    private InterestPushService interestPushService;
-    @Autowired
-    private WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter webMvcAutoConfigurationAdapter;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private FeedService feedService;
+    private FavoritesVideoMapper favoritesVideoMapper;
 
-    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserService userService, VideoShareMapper videoShareMapper, VideoStarMapper videoStarMapper, RedisCacheUtil redisCacheUtil) {
+    public VideoServiceImpl(TypeService typeServiceImpl, FileService fileService, VideoPublishAuditService videoPublishAuditService, UserService userService, VideoShareMapper videoShareMapper, RedisCacheUtil redisCacheUtil, InterestPushService interestPushService, WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter webMvcAutoConfigurationAdapter, ObjectMapper objectMapper, FeedService feedService, VideoStarMapper videoStarMapper) {
         this.typeServiceImpl = typeServiceImpl;
         this.fileService = fileService;
         this.videoPublishAuditService = videoPublishAuditService;
@@ -87,6 +87,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         this.videoShareMapper = videoShareMapper;
         this.videoStarMapper = videoStarMapper;
         this.redisCacheUtil = redisCacheUtil;
+        this.interestPushService = interestPushService;
+        this.objectMapper = objectMapper;
+        this.feedService = feedService;
     }
 
     @Override
@@ -239,11 +242,10 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             // 解耦
             new Thread(() -> {
                 // 删除分享量 点赞量
-//                TODO 标签兴趣推送
-                videoShareMapper.delete(new LambdaQueryWrapper<VideoShare>().eq(VideoShare::getVideoId, videoId).eq(VideoShare::getUserId, userId));
-                videoStarMapper.delete(new LambdaQueryWrapper<VideoStar>().eq(VideoStar::getVideoId, videoId).eq(VideoStar::getUserId, userId));
-//                interestPushService.deleteSystemStockIn(destVideo);
-//                interestPushService.deleteSystemTypeStockIn(destVideo);
+                videoShareMapper.delete(new LambdaQueryWrapper<VideoShare>()
+                        .eq(VideoShare::getVideoId, videoId).eq(VideoShare::getUserId, userId));
+                interestPushService.deleteSystemStockIn(destVideo);
+                interestPushService.deleteSystemTypeStockIn(destVideo);
             }).start();
         }
         return b;
@@ -273,14 +275,15 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         Long starCounts = redisCacheUtil.countBits(likeNumStr);
         LOG.info("点赞成功 : {}", result);
         LOG.info("当前startCounts : {}", starCounts);
+
 //        异步改变用户模型
         // 获取标签
-//        TODO 更新用户模型
 //        成功或者失败 ？
         new Thread(() -> {
+            updateStar(video, member ? -1L : 1L);
             List<String> labels = video.buildLabel();
-//            UserModel userModel = UserModel.buildUserModel(labels, videoId, 1.0);
-//            interestPushService.updateUserModel(userModel);
+            UserModel userModel = UserModel.buildUserModel(labels, videoId, 1.0);
+            interestPushService.updateUserModel(userModel);
         }).start();
 //        数据分析出某个时间带你突增的GAP
 //        主动进行DB写入 ?
@@ -419,8 +422,96 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Override
     public Collection<Video> pushVideos(Long userId) {
-//
-        return null;
+        User user = null;
+        if (userId != null) {
+            user = userService.getById(userId);
+        }
+        Collection<Long> videoIds = interestPushService.listVideoIdByUserModel(user);
+        Collection<Video> videos = new ArrayList<>();
+        if (ObjectUtils.isEmpty(videoIds)) {
+            videoIds = list(new LambdaQueryWrapper<Video>().orderByDesc(Video::getGmtCreated)).stream().map(Video::getId).collect(Collectors.toList());
+            videoIds = new HashSet<>(videoIds).stream().limit(10).collect(Collectors.toList());
+        }
+        videos = listByIds(videoIds);
+        setUserVoAndUrl(videos);
+        return videos;
+    }
+
+    @Override
+    public Collection<Video> getVideoByTypeId(Long typeId) {
+        if (typeId == null) return Collections.EMPTY_LIST;
+        final Type type = typeServiceImpl.getById(typeId);
+        if (type == null) return Collections.EMPTY_LIST;
+
+        Collection<Long> videoIds = interestPushService.listVideoIdByTypeId(typeId);
+        if (ObjectUtils.isEmpty(videoIds)) {
+            return Collections.EMPTY_LIST;
+        }
+        final Collection<Video> videos = listByIds(videoIds);
+
+        setUserVoAndUrl(videos);
+        return videos;
+    }
+
+    @Override
+    public void historyVideo(Long videoID, Long userId) {
+        String key = RedisConstant.USER_HISTORY_VIDEO + videoID + ":" + userId;
+        String value = redisCacheUtil.getKey(key);
+        if (value == null) {
+            redisCacheUtil.set(key, videoID, RedisConstant.HISTORY_TIME);
+            final Video video = getById(videoID);
+            video.setUser(userService.getInfo(video.getUserId()));
+            video.setTypeName(typeServiceImpl.getById(video.getTypeId()).getName());
+            redisCacheUtil.addZSetWithScores(RedisConstant.USER_HISTORY_VIDEO + userId,
+                    video, (double) System.currentTimeMillis());
+            redisCacheUtil.expireBySeconds(RedisConstant.USER_HISTORY_VIDEO + userId, RedisConstant.HISTORY_TIME);
+            updateHistory(video, 1L);
+        }
+    }
+
+    @Override
+    public LinkedHashMap<String, List<Video>> getHistory(PageVo pageVo) {
+        final Long userId = UserHolder.get();
+        String key = RedisConstant.USER_HISTORY_VIDEO + userId;
+        Set<ZSetOperations.TypedTuple<Object>> typedTuples = redisCacheUtil.zSetGetByPage(key, pageVo.getPage(), pageVo.getLimit());
+        if (ObjectUtils.isEmpty(typedTuples)) {
+            return new LinkedHashMap<>();
+        }
+        List<Video> temp = new ArrayList<>();
+        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        final LinkedHashMap<String, List<Video>> result = new LinkedHashMap<>();
+        for (ZSetOperations.TypedTuple<Object> typedTuple : typedTuples) {
+            final Date date = new Date(Objects.requireNonNull(typedTuple.getScore()).longValue());
+            final String format = simpleDateFormat.format(date);
+            if (!result.containsKey(format)) {
+                result.put(format, new ArrayList<>());
+            }
+            final Video video = (Video) typedTuple.getValue();
+            result.get(format).add(video);
+            temp.add(video);
+        }
+        setUserVoAndUrl(temp
+        );
+        return result;
+    }
+
+    @Override
+    public Collection<Long> listVideoIdByUserId(Long followUserId) {
+        return list(new LambdaQueryWrapper<Video>()
+                .eq(Video::getUserId, followUserId)
+                .select(Video::getId)).stream().distinct().map(Video::getId).toList();
+    }
+
+    /**
+     * 浏览量
+     *
+     * @param video
+     */
+    public void updateHistory(Video video, Long value) {
+        final UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.setSql("history_count = history_count + " + value);
+        updateWrapper.lambda().eq(Video::getId, video.getId()).eq(Video::getHistoryCount, video.getHistoryCount());
+        update(video, updateWrapper);
     }
 
     //    行锁 最简单，效率快
@@ -428,6 +519,18 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         final UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
         updateWrapper.setSql("share_count = share_count + " + signal);
         updateWrapper.lambda().eq(Video::getId, video.getId()).eq(Video::getShareCount, video.getShareCount());
+        update(video, updateWrapper);
+    }
+
+    /**
+     * 点赞数
+     *
+     * @param video
+     */
+    public void updateStar(Video video, Long value) {
+        final UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.setSql("start_count = start_count + " + value);
+        updateWrapper.lambda().eq(Video::getId, video.getId()).eq(Video::getStartCount, video.getStartCount());
         update(video, updateWrapper);
     }
 
@@ -440,6 +543,59 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             return false;
         }
         return true;
+    }
+
+    @Override
+    public Collection<Video> getFavoritesVideo(Long favoritesId, Long userId) {
+        List<Long> longList = favoritesVideoMapper.selectList(new LambdaQueryWrapper<FavoritesVideo>()
+                        .eq(FavoritesVideo::getFavoritesId, favoritesId)
+                        .eq(FavoritesVideo::getUserId, userId)
+                        .select(FavoritesVideo::getVideoId))
+                .stream().map(FavoritesVideo::getVideoId).toList();
+        if (longList.isEmpty()) {
+            LOG.info("该收藏夹为空");
+            throw new BaseException("该收藏夹为空");
+        }
+
+        return getVideosByIds(longList);
+    }
+
+    @Override
+    public boolean addFavorites(String fId, String vId) {
+        Long userId = UserHolder.get();
+        long count = favoritesVideoMapper.selectCount(
+                new LambdaQueryWrapper<FavoritesVideo>()
+                        .eq(FavoritesVideo::getUserId, userId));
+        if (count <= 0) {
+//            boolean b = favoritesService.changgeFavorites(new FavoritesVo(), userId);
+            throw new BaseException("收藏夹不存在，请重新创建");
+        }
+        FavoritesVideo favoritesVideo = new FavoritesVideo();
+        favoritesVideo.setFavoritesId(Long.parseLong(fId));
+        favoritesVideo.setUserId(userId);
+        favoritesVideo.setVideoId(Long.parseLong(vId));
+        Video byId = getById(Long.parseLong(vId));
+        try {
+            int insert = favoritesVideoMapper.insert(favoritesVideo);
+            if (insert >= 1) {
+                LOG.info("收藏成功 , : {}", favoritesVideo);
+                updateFavorites(byId, 1L);
+                return true;
+            }
+        } catch (Exception e) {
+            updateFavorites(byId, -1L);
+            LOG.info("取消收藏 , : {}", favoritesVideo);
+            return true;
+        }
+        return false;
+    }
+
+    //    收藏视频
+    public void updateFavorites(Video video, Long value) {
+        final UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.setSql("favorites_count = favorites_count + " + value);
+        updateWrapper.lambda().eq(Video::getId, video.getId()).eq(Video::getFavoritesCount, video.getFavoritesCount());
+        update(video, updateWrapper);
     }
 
 }

@@ -2,9 +2,6 @@ package com.lartimes.tiktok.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lartimes.tiktok.model.user.FavoritesVideo;
-import com.lartimes.tiktok.model.video.Video;
-
-import java.util.Collection;
 
 /**
  * <p>
@@ -16,13 +13,5 @@ import java.util.Collection;
  */
 public interface FavoritesVideoService extends IService<FavoritesVideo> {
 
-    Collection<Video> getFavoritesVideo(Long favoritesId, Long userId);
 
-    /**
-     *
-     * @param fId
-     * @param vId
-     * @return
-     */
-    boolean addFavorites(String fId, String vId);
 }

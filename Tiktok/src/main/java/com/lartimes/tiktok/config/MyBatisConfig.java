@@ -40,10 +40,8 @@ public class MyBatisConfig {
         MybatisSqlSessionFactoryBean sqlSessionFactory = new MybatisSqlSessionFactoryBean();
         sqlSessionFactory.setDataSource(longConnectionDataSource);
         sqlSessionFactory.setGlobalConfig(globalConfig);
-        // 设置Mapper XML文件的位置
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         sqlSessionFactory.setMapperLocations(resolver.getResources("classpath:com/lartimes/tiktok/mapper/*.xml"));
-//        sqlSessionFactory.setTypeAliasesPackage("com.lartimes.tiktok.model");
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.setUseGeneratedKeys(true);

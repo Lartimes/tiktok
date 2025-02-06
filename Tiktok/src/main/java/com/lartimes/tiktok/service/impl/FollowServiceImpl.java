@@ -7,11 +7,13 @@ import com.lartimes.tiktok.exception.BaseException;
 import com.lartimes.tiktok.mapper.FollowMapper;
 import com.lartimes.tiktok.model.user.Follow;
 import com.lartimes.tiktok.model.vo.PageVo;
+import com.lartimes.tiktok.service.FeedService;
 import com.lartimes.tiktok.service.FollowService;
+import com.lartimes.tiktok.service.VideoService;
 import com.lartimes.tiktok.util.RedisCacheUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,15 +30,16 @@ import java.util.stream.Collectors;
  *
  * @author lartimes
  */
-@Slf4j
 @Service
 public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> implements FollowService {
     private static final Logger LOG = LogManager.getLogger(FollowServiceImpl.class);
-    private final RedisCacheUtil redisCacheUtil;
+    @Autowired
+    private RedisCacheUtil redisCacheUtil;
+    @Autowired
+    private FeedService feedService;
+    @Autowired
+    private VideoService videoService;
 
-    public FollowServiceImpl(RedisCacheUtil redisCacheUtil) {
-        this.redisCacheUtil = redisCacheUtil;
-    }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -61,13 +64,11 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
             LOG.info("取关 : {}", remove);
             redisCacheUtil.removeZSetValue(RedisConstant.USER_FOLLOW + userId, followUserId);
             redisCacheUtil.removeZSetValue(RedisConstant.USER_FANS + followUserId, userId);
-//TODO
-//            final List<Long> videoIds = (List<Long>) videoService.listVideoIdByUserId(followsId);
-//            feedService.deleteInBoxFeed(userId, videoIds);
+            final List<Long> videoIds = (List<Long>) videoService.listVideoIdByUserId(followUserId);
+            feedService.deleteInBoxFeed(userId, videoIds);
             return Boolean.FALSE;
         }
     }
-
 
     @Override
     public Long getFansCount(Long userId) {

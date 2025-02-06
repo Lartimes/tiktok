@@ -1,5 +1,9 @@
 package com.lartimes.tiktok.schedule;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
 /**
  * @author wüsch
  * @version 1.0
@@ -24,6 +28,15 @@ public interface VideoScheduledService {
      * 热门视频
      */
     void hotVideo();
+
+    /**
+     * 将 LocalDateTime 转换为毫秒数
+     */
+    default long toEpochMilli(LocalDateTime localDateTime) {
+        ZoneId zoneId = ZoneId.systemDefault();
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        return zonedDateTime.toInstant().toEpochMilli();
+    }
 
 
 }

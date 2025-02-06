@@ -29,8 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,14 +61,6 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
     @Autowired
     private SysSettingMapper sysSettingMapper;
 
-    /**
-     * 将 LocalDateTime 转换为毫秒数
-     */
-    private static long toEpochMilli(LocalDateTime localDateTime) {
-        ZoneId zoneId = ZoneId.systemDefault();
-        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
-        return zonedDateTime.toInstant().toEpochMilli();
-    }
 
     @Scheduled(cron = "0 0/30 * * * ?") // 每 30 分钟的第 0 秒执行一次
     @Override
@@ -252,7 +242,6 @@ public class VideoScheduledServiceImpl implements VideoScheduledService {
                     hotVideos.add(video.getId());
                 }
             }
-            System.out.println("推送热门视频");
             if (!ObjectUtils.isEmpty(hotVideos)) {
                 String key = RedisConstant.HOT_VIDEO + dayOfMonth;
                 redisCacheUtil.getRedisTemplate().opsForSet().add(key, hotVideos.toArray());

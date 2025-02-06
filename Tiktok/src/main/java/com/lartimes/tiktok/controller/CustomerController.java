@@ -5,10 +5,9 @@ import com.lartimes.tiktok.model.vo.*;
 import com.lartimes.tiktok.service.FavoritesService;
 import com.lartimes.tiktok.service.QiNiuFileService;
 import com.lartimes.tiktok.service.TypeService;
-import com.lartimes.tiktok.service.UserService;
+import com.lartimes.tiktok.service.user.UserService;
 import com.lartimes.tiktok.util.R;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,19 +24,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/customer")
 public class CustomerController {
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private QiNiuFileService qiNiuFileService;
-    @Autowired
-    private FavoritesService favoritesService;
-    @Autowired
-    private TypeService typeService;
+    private final UserService userService;
+    private final QiNiuFileService qiNiuFileService;
+    private final FavoritesService favoritesService;
+    private final TypeService typeService;
+
+    public CustomerController(UserService userService, QiNiuFileService qiNiuFileService, FavoritesService favoritesService, TypeService typeService) {
+        this.userService = userService;
+        this.qiNiuFileService = qiNiuFileService;
+        this.favoritesService = favoritesService;
+        this.typeService = typeService;
+    }
 
     /**
      * 更新用户信息
      *
-     * @param userVO
+     * @param userVO 用户信息vo
      * @return
      */
     @PutMapping
@@ -52,9 +54,8 @@ public class CustomerController {
     /**
      * 获取个人信息
      *
-     * @param userId
+     * @param userId 用户ID
      * @return
-     * @throws Exception
      */
     @GetMapping("/getInfo/{userId}")
     public R getInfo(@PathVariable Long userId) {
@@ -245,8 +246,6 @@ public class CustomerController {
         }
         return R.ok();
     }
-
-
 
 
 }

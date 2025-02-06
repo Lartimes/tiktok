@@ -150,7 +150,7 @@ public class RedisCacheUtil {
 
         try {
             if (score == null) {
-                score = (System.currentTimeMillis() / 1e3);
+                score = (double) System.currentTimeMillis();
             }
             return redisTemplate.opsForZSet().add(key, userId, score);
         } catch (Exception e) {
@@ -168,7 +168,7 @@ public class RedisCacheUtil {
     public Boolean addMembers(String key, Set<Object> members) {
         ZSetOperations<String, Object> zSetOps = redisTemplate.opsForZSet();
         Set<ZSetOperations.TypedTuple<Object>> tuples = members.stream()
-                .map(member -> new DefaultTypedTuple<Object>(member, System.currentTimeMillis() / 1e3))
+                .map(member -> new DefaultTypedTuple<Object>(member, (double) System.currentTimeMillis()))
                 .collect(Collectors.toSet());
         Long add = zSetOps.add(key, tuples);
         if (add != null) {
@@ -234,8 +234,8 @@ public class RedisCacheUtil {
 
     }
 
-    public String getKey(String email) {
-        return String.valueOf(redisTemplate.opsForValue().get(email));
+    public String getKey(String key) {
+        return String.valueOf(redisTemplate.opsForValue().get(key));
     }
 
     public void deleteKey(String key) {
@@ -276,6 +276,11 @@ public class RedisCacheUtil {
         });
     }
 
+    /**
+     * hashset get
+     * @param key
+     * @return
+     */
     public Map<Object, Object> hmget(String key) {
         return redisTemplate.opsForHash().entries(key);
     }

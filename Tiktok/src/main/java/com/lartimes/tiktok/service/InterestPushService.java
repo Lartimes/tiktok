@@ -1,6 +1,7 @@
 package com.lartimes.tiktok.service;
 
 import com.lartimes.tiktok.model.user.User;
+import com.lartimes.tiktok.model.video.Video;
 import com.lartimes.tiktok.model.vo.UserModel;
 
 import java.util.Collection;
@@ -48,4 +49,34 @@ public interface InterestPushService {
      */
     Collection<Long> listVideoIdByUserModel(User user);
 
+    /**
+     *
+     * @param typeId
+     * @return
+     */
+    Collection<Long> listVideoIdByTypeId(Long typeId);
+
+    /**
+     * 删除系统视频库
+     * @param destVideo
+     */
+    void deleteSystemStockIn(Video destVideo);
+
+    /**
+     * 删除系统分类库
+     * @param destVideo
+     */
+    void deleteSystemTypeStockIn(Video destVideo);
+
+    /**
+     * 添加系统分类库
+     * @param video
+     */
+    void pushSystemTypeStockIn(Video video);
+
+    /**
+     * 系统标签库
+     * @param video
+     */
+    void pushSystemStockIn(Video video);
 }

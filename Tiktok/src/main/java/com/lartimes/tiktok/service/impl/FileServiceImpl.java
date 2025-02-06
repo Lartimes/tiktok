@@ -9,7 +9,6 @@ import com.lartimes.tiktok.model.video.File;
 import com.lartimes.tiktok.service.FileService;
 import com.lartimes.tiktok.service.QiNiuFileService;
 import com.qiniu.storage.model.FileInfo;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,6 @@ import java.util.UUID;
  *
  * @author lartimes
  */
-@Slf4j
 @Service
 public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements FileService {
     private static final Logger LOG = LogManager.getLogger(FileServiceImpl.class);

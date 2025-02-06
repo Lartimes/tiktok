@@ -6,16 +6,22 @@ import com.lartimes.tiktok.mapper.VideoMapper;
 import com.lartimes.tiktok.model.audit.AuditResponse;
 import com.lartimes.tiktok.model.task.VideoTask;
 import com.lartimes.tiktok.model.video.Video;
+import com.lartimes.tiktok.service.FeedService;
 import com.lartimes.tiktok.service.FileService;
 import com.lartimes.tiktok.service.FollowService;
+import com.lartimes.tiktok.service.InterestPushService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -31,28 +37,35 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class VideoPublishAuditService implements AuditService<VideoTask, AuditResponse>, InitializingBean, BeanPostProcessor {
     private static final Logger LOG = LogManager.getLogger(VideoPublishAuditService.class);
-    private final VideoMapper videoMapper;
-    private final VideoAuditService videoAuditService;
-    private final ImageAuditService imageAuditService;
-    private final TextAuditService textAuditService;
-    private final FileService fileService;
-    private final FollowService followService;
     protected ThreadPoolExecutor executor;
+    @Autowired
+    private VideoMapper videoMapper;
+    @Autowired
+    private VideoAuditService videoAuditService;
+    @Autowired
+    private ImageAuditService imageAuditService;
+    @Autowired
+    private TextAuditService textAuditService;
+    @Autowired
+    private FileService fileService;
+    @Autowired
+    private FollowService followService;
+    @Autowired
+    private InterestPushService interestPushService;
+    @Autowired
+    private FeedService feedService;
     private int maximumPoolSize = 8;
 
     {
         this.maximumPoolSize = Runtime.getRuntime().availableProcessors() * 2;
     }
 
-    public VideoPublishAuditService(VideoMapper videoMapper, VideoAuditService videoAuditService, ImageAuditService imageAuditService, TextAuditService textAuditService, FileService fileService, FollowService followService) {
-        this.videoMapper = videoMapper;
-        this.videoAuditService = videoAuditService;
-        this.imageAuditService = imageAuditService;
-        this.textAuditService = textAuditService;
-        this.fileService = fileService;
-        this.followService = followService;
-    }
 
+    private static long toEpochMilli(LocalDateTime localDateTime) {
+        ZoneId zoneId = ZoneId.systemDefault();
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        return zonedDateTime.toInstant().toEpochMilli();
+    }
 
     /**
      * @param videoTask
@@ -101,17 +114,18 @@ public class VideoPublishAuditService implements AuditService<VideoTask, AuditRe
                 coverAuditResponse = imageAuditService.audit(QiNiuConfig.CNAME + "/" + fileService.getById(video.getCover()).getFileKey());
 
 
-//                interestPushService.pushSystemTypeStockIn(video1);
-//                interestPushService.pushSystemStockIn(video1);
+                interestPushService.pushSystemTypeStockIn(video1);
+                interestPushService.pushSystemStockIn(video1);
 
                 // 推入发件箱
-//                feedService.pusOutBoxFeed(video.getUserId(), video.getId(), video1.getGmtCreated().getTime());
+
+                feedService.pusOutBoxFeed(video.getUserId(), video.getId(), toEpochMilli(video1.getGmtCreated()));
             } else if (videoTask.getNewState()) {
-//                interestPushService.deleteSystemStockIn(video1);
-//                interestPushService.deleteSystemTypeStockIn(video1);
+                interestPushService.deleteSystemStockIn(video1);
+                interestPushService.deleteSystemTypeStockIn(video1);
                 // 删除发件箱以及收件箱
                 final Collection<Long> fans = followService.getFansCollection(video.getUserId(), null);
-//                feedService.deleteOutBoxFeed(video.getUserId(), fans, video.getId());
+                feedService.deleteOutBoxFeed(video.getUserId(), fans, video.getId());
             }
 
             // 新老视频标题简介一致
